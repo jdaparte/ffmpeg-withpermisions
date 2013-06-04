@@ -251,6 +251,8 @@ typedef struct {
     EbmlList tags;
     EbmlList seekhead;
 
+    int num_streams;
+
     /* byte position of the segment inside the stream */
     int64_t segment_start;
 
@@ -1612,6 +1614,7 @@ static int matroska_read_header(AVFormatContext *s)
         st = track->stream = avformat_new_stream(s, NULL);
         if (st == NULL)
             return AVERROR(ENOMEM);
+        st->id = matroska->num_streams++;
 
         if (!strcmp(track->codec_id, "V_MS/VFW/FOURCC")
             && track->codec_priv.size >= 40
@@ -1828,6 +1831,7 @@ static int matroska_read_header(AVFormatContext *s)
             AVStream *st = avformat_new_stream(s, NULL);
             if (st == NULL)
                 break;
+            st->id = matroska->num_streams++;
             av_dict_set(&st->metadata, "filename",attachements[j].filename, 0);
             av_dict_set(&st->metadata, "mimetype", attachements[j].mime, 0);
             st->codec->codec_id = AV_CODEC_ID_NONE;

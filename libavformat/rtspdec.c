@@ -868,7 +868,7 @@ retry:
     rt->packets++;
 
     /* XXX to investigate : maybe we should do this on all divx media */
-    if(s->streams[pkt->stream_index]->codec->codec_type == CODEC_TYPE_VIDEO){
+    if(s->streams[pkt->stream_index]->codec->codec_type == AVMEDIA_TYPE_VIDEO){
         pkt->pts = pkt->pts - s->streams[pkt->stream_index]->start_time;
     }
 

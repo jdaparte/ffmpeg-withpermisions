@@ -1700,7 +1700,7 @@ redirect:
     rt->seek_timestamp = 0; /* default is to start stream at position zero */
     
     for (i=0 ; i< s->nb_streams; i++) {
-        if(s->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO) {
+        if(s->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
             if( ( s->streams[i]->r_frame_rate.num == 0 ) || ( s->streams[i]->r_frame_rate.den == 0) )
                 s->streams[i]->codec->flags2 |= CODEC_FLAG2_NO_FPS;
         }

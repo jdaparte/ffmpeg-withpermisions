@@ -78,6 +78,12 @@ static AVStream *create_stream(AVFormatContext *s, int codec_type)
                            && s->streams[1]->codec->codec_type != AVMEDIA_TYPE_DATA))
         s->ctx_flags &= ~AVFMTCTX_NOHEADER;
 
+    switch (codec_type) {
+        case AVMEDIA_TYPE_VIDEO: st->id = 0; break;
+        case AVMEDIA_TYPE_AUDIO: st->id = 1; break;
+        case AVMEDIA_TYPE_DATA:  st->id = 2; break;
+    }
+
     avpriv_set_pts_info(st, 32, 1, 1000); /* 32 bit pts in ms */
     return st;
 }

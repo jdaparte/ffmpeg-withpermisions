@@ -2148,10 +2148,11 @@ static int matroska_parse_frame(MatroskaDemuxContext *matroska,
         memcpy(side_data + 8, additional, additional_size);
     }
 
-    if (track->ms_compat)
-        pkt->dts = timecode;
-    else
-        pkt->pts = timecode;
+    //if (track->ms_compat)
+    //    pkt->dts = timecode;
+    //else
+    //    pkt->pts = timecode;
+    pkt->pts = timecode;
     pkt->pos = pos;
     if (st->codec->codec_id == AV_CODEC_ID_SUBRIP) {
         /*

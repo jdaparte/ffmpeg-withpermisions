@@ -344,11 +344,10 @@ AVInputFormat *av_probe_input_format3(AVProbeData *pd, int is_opened, int *score
                 score = 50;
             }
         }
-        if (score > score_max) {
+        if (score >= score_max) {
             score_max = score;
             fmt = fmt1;
-        }else if (score == score_max && score < 100)
-            fmt = NULL;
+        }
     }
     *score_ret= score_max;
 

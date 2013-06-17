@@ -365,6 +365,7 @@ static int avi_read_header(AVFormatContext *s)
     uint64_t list_end = 0;
     int ret;
 
+    s->flags |= AVFMT_FLAG_GENPTS;
     avi->stream_index= -1;
 
     ret = get_riff(s, pb);

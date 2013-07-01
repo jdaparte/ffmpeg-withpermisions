@@ -3507,10 +3507,6 @@ typedef struct AVSubtitleRect {
     int flags;
 } AVSubtitleRect;
 
-#define SUB_FMT_RGB	0
-#define SUB_FMT_INDEXED	1
-#define SUB_FMT_TEXT	2
-
 typedef struct AVSubtitle {
     uint16_t format; /* 0 = graphics */
     uint32_t start_display_time; /* relative to packet pts, in ms */

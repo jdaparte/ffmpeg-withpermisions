@@ -2402,6 +2402,11 @@ static const AVCodecDescriptor codec_descriptors[] = {
         .long_name = NULL_IF_CONFIG_SMALL("SSA (SubStation Alpha) / ASS (Advanced SSA) subtitle"),
     },
     {
+        .id        = AV_CODEC_ID_SSAMKV,
+        .type      = AVMEDIA_TYPE_SUBTITLE,
+        .name      = "assmkv",
+    },
+    {
         .id        = AV_CODEC_ID_MOV_TEXT,
         .type      = AVMEDIA_TYPE_SUBTITLE,
         .name      = "mov_text",

@@ -1984,7 +1984,7 @@ int avcodec_decode_subtitle2(AVCodecContext *avctx, AVSubtitle *sub,
                        !!*got_sub_ptr >= !!sub->num_rects);
             if (tmp.data != pkt_recoded.data)
                 av_free(pkt_recoded.data);
-            sub->format = !(avctx->codec_descriptor->props & AV_CODEC_PROP_BITMAP_SUB);
+            sub->format = !(avctx->codec_descriptor && avctx->codec_descriptor->props & AV_CODEC_PROP_BITMAP_SUB);
             avctx->pkt = NULL;
         }
 

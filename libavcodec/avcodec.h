@@ -460,7 +460,6 @@ enum AVCodecID {
     AV_CODEC_ID_TX3G,
     AV_CODEC_ID_SMI,   /* Microsoft SAMI (Synchronized Accessible Media Interchange) */
     AV_CODEC_ID_SSA,
-    AV_CODEC_ID_SSAMKV,
     AV_CODEC_ID_MOV_TEXT,
     AV_CODEC_ID_HDMV_PGS_SUBTITLE,
     AV_CODEC_ID_DVB_TELETEXT,

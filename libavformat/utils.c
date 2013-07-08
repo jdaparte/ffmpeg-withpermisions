@@ -3350,8 +3350,7 @@ void avformat_close_input(AVFormatContext **ps)
     AVFormatContext *s = *ps;
     AVIOContext *pb = s->pb;
 
-    if ((s->iformat && s->iformat->flags & AVFMT_NOFILE) ||
-        (s->flags & AVFMT_FLAG_CUSTOM_IO))
+    if ((s->iformat && s->iformat->flags & AVFMT_NOFILE))
         pb = NULL;
 
     flush_packet_queue(s);

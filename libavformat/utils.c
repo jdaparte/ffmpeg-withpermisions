@@ -2126,7 +2126,7 @@ static int seek_frame_internal(AVFormatContext *s, int stream_index,
     if (s->iformat->read_timestamp && !(s->iformat->flags & AVFMT_NOBINSEARCH)) {
         ff_read_frame_flush(s);
         return ff_seek_frame_binary2(s, stream_index, timestamp, flags, cb, userdata);
-    } else if (!(s->iformat->flags & AVFMT_NOGENSEARCH)) {
+    } else if (!(s->iformat->flags & AVFMT_NOGENSEARCH) && (s->iformat->flags & AVFMT_GENERIC_INDEX)) {
         ff_read_frame_flush(s);
         return seek_frame_generic(s, stream_index, timestamp, flags, cb, userdata);
     }

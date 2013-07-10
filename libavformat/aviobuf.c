@@ -239,16 +239,14 @@ int64_t avio_seek(AVIOContext *s, int64_t offset, int whence)
             return offset;
         }
     } else {
-        int64_t res;
-
         if (s->write_flag) {
             flush_buffer(s);
             s->must_flush = 1;
         }
         if (!s->seek)
             return AVERROR(EPIPE);
-        if ((res = s->seek(s->opaque, offset, SEEK_SET)) < 0)
-            return res;
+        if ((offset = s->seek(s->opaque, offset, SEEK_SET)) < 0)
+            return offset;
         s->seek_count ++;
         if (!s->write_flag)
             s->buf_end = s->buffer;

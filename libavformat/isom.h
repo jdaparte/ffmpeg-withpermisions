@@ -241,6 +241,7 @@ typedef struct MOVContext {
     int time_scale;
     int64_t duration;     ///< duration of the longest track
     int found_moov;       ///< 'moov' atom has been found
+    int found_moof;       ///< 'moof' atom has been found
     int found_mdat;       ///< 'mdat' atom has been found
     int found_hdlr_mdta;  ///< 'hdlr' atom with type 'mdta' has been found
     int trak_index;       ///< Index of the current 'trak'
@@ -301,6 +302,7 @@ void ff_mp4_parse_es_descr(AVIOContext *pb, int *es_id);
 
 #define MOV_FLAG_NOTSET                 0x00
 #define MOV_FLAG_HLS                    0x01
+#define MOV_FLAG_MSS                    0x01
 
 #define MOV_TFHD_BASE_DATA_OFFSET       0x01
 #define MOV_TFHD_STSD_ID                0x02

@@ -800,6 +800,7 @@ static int mov_read_moof(MOVContext *c, AVIOContext *pb, MOVAtom atom)
 {
     c->fragment.moof_offset = avio_tell(pb) - 8;
     av_dlog(c->fc, "moof offset %"PRIx64"\n", c->fragment.moof_offset);
+    c->found_moof = 1;
     return mov_read_default(c, pb, atom);
 }
 
@@ -2289,6 +2290,54 @@ static int mov_read_trak(MOVContext *c, AVIOContext *pb, MOVAtom atom)
     return 0;
 }
 
+static int mov_read_traf(MOVContext *c, AVIOContext *pb, MOVAtom atom)
+{
+    AVStream *st;
+    MOVStreamContext *sc;
+    int ret;
+
+    if ((c->flags & MOV_FLAG_MSS)) {
+        st = avformat_new_stream(c->fc, NULL);
+        if (!st)
+            return AVERROR(ENOMEM);
+        st->id = c->fc->nb_streams;
+        sc = av_mallocz(sizeof(MOVStreamContext));
+        if (!sc) {
+            av_free(st);
+            return AVERROR(ENOMEM);
+        }
+
+        st->priv_data = sc;
+        st->codec->codec_type = AVMEDIA_TYPE_DATA;
+        sc->ffindex = st->index;
+        fix_timescale(c, sc);
+
+        avpriv_set_pts_info(st, 64, 1, sc->time_scale);
+
+        mov_build_index(c, st);
+        sc->pb = c->fc->pb;
+        sc->pb_is_copied = 1;
+
+        if (st->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
+            if (!st->sample_aspect_ratio.num &&
+                (st->codec->width != sc->width || st->codec->height != sc->height)) {
+                st->sample_aspect_ratio = av_d2q(((double)st->codec->height * sc->width) /
+                                                 ((double)st->codec->width * sc->height), INT_MAX);
+            }
+
+            if (st->duration > 0)
+                av_reduce(&st->avg_frame_rate.num, &st->avg_frame_rate.den,
+                          sc->time_scale*st->nb_frames, st->duration, INT_MAX);
+
+        }
+
+    }
+
+    if ((ret = mov_read_default(c, pb, atom)) < 0)
+        return ret;
+    return 0;
+}
+
 static int mov_read_ilst(MOVContext *c, AVIOContext *pb, MOVAtom atom)
 {
     int ret;
@@ -2423,26 +2472,39 @@ static int mov_read_tfhd(MOVContext *c, AVIOContext *pb, MOVAtom atom)
     if (!track_id)
         return AVERROR_INVALIDDATA;
     frag->track_id = track_id;
-    for (i = 0; i < c->trex_count; i++)
-        if (c->trex_data[i].track_id == frag->track_id) {
-            trex = &c->trex_data[i];
-            break;
+
+    if (!(c->flags & MOV_FLAG_MSS)) {
+        for (i = 0; i < c->trex_count; i++)
+            if (c->trex_data[i].track_id == frag->track_id) {
+                trex = &c->trex_data[i];
+                break;
+            }
+        if (!trex) {
+            av_log(c->fc, AV_LOG_ERROR, "could not find corresponding trex\n");
+            return AVERROR_INVALIDDATA;
         }
-    if (!trex) {
-        av_log(c->fc, AV_LOG_ERROR, "could not find corresponding trex\n");
-        return AVERROR_INVALIDDATA;
+
+        frag->base_data_offset = flags & MOV_TFHD_BASE_DATA_OFFSET ?
+            avio_rb64(pb) : frag->moof_offset;
+        frag->stsd_id  = flags & MOV_TFHD_STSD_ID ? avio_rb32(pb) : trex->stsd_id;
+
+        frag->duration = flags & MOV_TFHD_DEFAULT_DURATION ?
+            avio_rb32(pb) : trex->duration;
+        frag->size     = flags & MOV_TFHD_DEFAULT_SIZE ?
+            avio_rb32(pb) : trex->size;
+        frag->flags    = flags & MOV_TFHD_DEFAULT_FLAGS ?
+            avio_rb32(pb) : trex->flags;
+    } else {
+        frag->base_data_offset = flags & MOV_TFHD_BASE_DATA_OFFSET ?
+            avio_rb64(pb) : frag->moof_offset;
+        frag->track_id = 1; /* only one for smooth */
+        frag->stsd_id = 1;
+        frag->duration = flags & MOV_TFHD_DEFAULT_DURATION ?
+            avio_rb32(pb) : 0;
+        frag->size = flags & MOV_TFHD_DEFAULT_SIZE ?
+            avio_rb32(pb) : 0;
+        frag->flags    = flags & MOV_TFHD_DEFAULT_FLAGS ? avio_rb32(pb) : 0;
     }
-
-    frag->base_data_offset = flags & MOV_TFHD_BASE_DATA_OFFSET ?
-                             avio_rb64(pb) : frag->moof_offset;
-    frag->stsd_id  = flags & MOV_TFHD_STSD_ID ? avio_rb32(pb) : trex->stsd_id;
-
-    frag->duration = flags & MOV_TFHD_DEFAULT_DURATION ?
-                     avio_rb32(pb) : trex->duration;
-    frag->size     = flags & MOV_TFHD_DEFAULT_SIZE ?
-                     avio_rb32(pb) : trex->size;
-    frag->flags    = flags & MOV_TFHD_DEFAULT_FLAGS ?
-                     avio_rb32(pb) : trex->flags;
     av_dlog(c->fc, "frag flags 0x%x\n", frag->flags);
     return 0;
 }
@@ -2755,7 +2817,7 @@ static const MOVParseTableEntry mov_default_parse_table[] = {
 { MKTAG('t','k','h','d'), mov_read_tkhd }, /* track header */
 { MKTAG('t','f','h','d'), mov_read_tfhd }, /* track fragment header */
 { MKTAG('t','r','a','k'), mov_read_trak },
-{ MKTAG('t','r','a','f'), mov_read_default },
+{ MKTAG('t','r','a','f'), mov_read_traf },
 { MKTAG('t','r','e','f'), mov_read_default },
 { MKTAG('t','m','c','d'), mov_read_tmcd },
 { MKTAG('c','h','a','p'), mov_read_chap },
@@ -2792,7 +2854,7 @@ static int mov_read_default(MOVContext *c, AVIOContext *pb, MOVAtom atom)
             a.size = avio_rb32(pb);
             a.type = avio_rl32(pb);
             if (atom.type != MKTAG('r','o','o','t') &&
-                atom.type != MKTAG('m','o','o','v'))
+                atom.type != MKTAG('m','o','o','v') && atom.type != MKTAG('m','o','o','f'))
             {
                 if (a.type == MKTAG('t','r','a','k') || a.type == MKTAG('m','d','a','t'))
                 {
@@ -2836,7 +2898,7 @@ static int mov_read_default(MOVContext *c, AVIOContext *pb, MOVAtom atom)
             int err = parse(c, pb, a);
             if (err < 0)
                 return err;
-            if (c->found_moov && c->found_mdat &&
+            if ((c->found_moov || c->found_moof) && c->found_mdat &&
                 ((!pb->seekable || c->fc->flags & AVFMT_FLAG_IGNIDX) ||
                  start_pos + a.size == avio_size(pb))) {
                 if (!pb->seekable || c->fc->flags & AVFMT_FLAG_IGNIDX)
@@ -3150,7 +3212,7 @@ static int mov_read_header(AVFormatContext *s)
         mov_read_close(s);
         return err;
     }
-    if (!mov->found_moov) {
+    if (!mov->found_moov && !mov->found_moof) {
         av_log(s, AV_LOG_ERROR, "moov atom not found\n");
         mov_read_close(s);
         return AVERROR_INVALIDDATA;
@@ -3382,6 +3444,13 @@ static int mov_read_seek(AVFormatContext *s, int stream_index, int64_t sample_ti
 }
 
 static const AVOption options[] = {
+    {"movdflags", "MOV demuxer flags", offsetof(MOVContext, flags),
+        AV_OPT_TYPE_FLAGS, {.i64 = MOV_FLAG_NOTSET}, INT_MIN, INT_MAX,
+        AV_OPT_FLAG_ENCODING_PARAM, "movdflags"},
+    {"smooth",
+        "Understand boxes from the smooth streaming fragments", 0,
+        AV_OPT_TYPE_CONST, {.i64 = MOV_FLAG_MSS}, INT_MIN, INT_MAX,
+        AV_OPT_FLAG_ENCODING_PARAM, "movdflags"},
     {"use_absolute_path",
         "allow using absolute path when opening alias, this is a possible security issue",
         offsetof(MOVContext, use_absolute_path), FF_OPT_TYPE_INT, {.i64 = 0},

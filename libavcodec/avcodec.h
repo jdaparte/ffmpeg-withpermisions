@@ -290,6 +290,7 @@ enum AVCodecID {
     AV_CODEC_ID_SGIRLE     = MKBETAG('S','G','I','R'),
     AV_CODEC_ID_MVC1       = MKBETAG('M','V','C','1'),
     AV_CODEC_ID_MVC2       = MKBETAG('M','V','C','2'),
+    AV_CODEC_ID_H265       = MKBETAG('H','2','6','5'),
 
     /* various PCM "codecs" */
     AV_CODEC_ID_FIRST_AUDIO = 0x10000,     ///< A dummy id pointing at the start of audio codecs

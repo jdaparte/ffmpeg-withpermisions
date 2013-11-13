@@ -1521,9 +1521,6 @@ static int dvbsub_decode(AVCodecContext *avctx,
             case DVBSUB_DISPLAYDEFINITION_SEGMENT:
                 dvbsub_parse_display_definition_segment(avctx, p, segment_length);
                 break;
-            case DVBSUB_DISPLAYDEFINITION_SEGMENT:
-                dvbsub_parse_display_definition_segment(avctx, p, segment_length);
-                break;
             case DVBSUB_DISPLAY_SEGMENT:
                 *data_size = dvbsub_display_end_segment(avctx, p, segment_length, sub);
                 got_segment |= 16;

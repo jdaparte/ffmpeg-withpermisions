@@ -1478,8 +1478,8 @@ static int dvbsub_decode(AVCodecContext *avctx,
     if (i % 16)
         av_dlog(avctx, "\n");
 
-    if (buf_size <= 6 || *buf != 0x0f) {
-        av_dlog(avctx, "incomplete or broken packet\n");
+    if (buf_size < 6 || *buf != 0x0f) {
+        av_log(avctx, AV_LOG_INFO, "incomplete or broken packet\n");
         return -1;
     }
 
@@ -1517,6 +1517,9 @@ static int dvbsub_decode(AVCodecContext *avctx,
             case DVBSUB_OBJECT_SEGMENT:
                 dvbsub_parse_object_segment(avctx, p, segment_length);
                 got_segment |= 8;
+                break;
+            case DVBSUB_DISPLAYDEFINITION_SEGMENT:
+                dvbsub_parse_display_definition_segment(avctx, p, segment_length);
                 break;
             case DVBSUB_DISPLAYDEFINITION_SEGMENT:
                 dvbsub_parse_display_definition_segment(avctx, p, segment_length);

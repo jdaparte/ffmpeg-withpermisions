@@ -1072,7 +1072,7 @@ static void dvbsub_parse_region_segment(AVCodecContext *avctx,
     if (region->width * region->height != region->buf_size) {
         av_free(region->pbuf);
 
-        region->buf_size = region->width * (region->height + 1);
+        region->buf_size = region->width * region->height;
 
         region->pbuf = av_malloc(region->buf_size);
 
@@ -1276,7 +1276,7 @@ static void save_display_set(DVBSubContext *ctx)
 
     if (x_pos >= 0) {
 
-        pbuf = av_malloc(width * (height + 1) * 4);
+        pbuf = av_malloc(width * height * 4);
 
         for (display = ctx->display_list; display; display = display->next) {
             region = get_region(ctx, display->region_id);

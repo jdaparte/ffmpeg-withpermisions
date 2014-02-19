@@ -485,22 +485,25 @@ static int dvbsub_read_2bit_string(uint8_t *destbuf, int dbuf_len,
         bits = get_bits(&gb, 2);
 
         if (bits) {
-            if (non_mod != 1 || bits != 1) {
-                if (map_table)
-                    *destbuf++ = map_table[bits];
-                else
-                    *destbuf++ = bits;
+            if (pixels_read < dbuf_len) {
+                if (non_mod != 1 || bits != 1) {
+                    if (map_table)
+                        *destbuf++ = map_table[bits];
+                    else
+                        *destbuf++ = bits;
+                }
+                pixels_read++;
             }
-            pixels_read++;
         } else {
             bits = get_bits1(&gb);
             if (bits == 1) {
                 run_length = get_bits(&gb, 3) + 3;
                 bits = get_bits(&gb, 2);
 
-                if (non_mod == 1 && bits == 1)
-                    pixels_read += run_length;
-                else {
+                if (non_mod == 1 && bits == 1) {
+                    if (pixels_read < dbuf_len - run_length)
+                        pixels_read += run_length;
+                } else {
                     if (map_table)
                         bits = map_table[bits];
                     while (run_length-- > 0 && pixels_read < dbuf_len) {
@@ -516,9 +519,10 @@ static int dvbsub_read_2bit_string(uint8_t *destbuf, int dbuf_len,
                         run_length = get_bits(&gb, 4) + 12;
                         bits = get_bits(&gb, 2);
 
-                        if (non_mod == 1 && bits == 1)
-                            pixels_read += run_length;
-                        else {
+                        if (non_mod == 1 && bits == 1) {
+                            if (pixels_read < dbuf_len - run_length)
+                                pixels_read += run_length;
+                        } else {
                             if (map_table)
                                 bits = map_table[bits];
                             while (run_length-- > 0 && pixels_read < dbuf_len) {
@@ -530,9 +534,10 @@ static int dvbsub_read_2bit_string(uint8_t *destbuf, int dbuf_len,
                         run_length = get_bits(&gb, 8) + 29;
                         bits = get_bits(&gb, 2);
 
-                        if (non_mod == 1 && bits == 1)
-                            pixels_read += run_length;
-                        else {
+                        if (non_mod == 1 && bits == 1) {
+                            if (pixels_read < dbuf_len - run_length)
+                                pixels_read += run_length;
+                        } else {
                             if (map_table)
                                 bits = map_table[bits];
                             while (run_length-- > 0 && pixels_read < dbuf_len) {
@@ -551,26 +556,23 @@ static int dvbsub_read_2bit_string(uint8_t *destbuf, int dbuf_len,
                             pixels_read++;
                         }
                     } else {
-                        (*srcbuf) += (get_bits_count(&gb) + 7) >> 3;
-                        return pixels_read;
+                        break;
                     }
                 } else {
                     if (map_table)
                         bits = map_table[0];
                     else
                         bits = 0;
-                    *destbuf++ = bits;
-                    pixels_read++;
+                    if (pixels_read < dbuf_len) {
+                        *destbuf++ = bits;
+                        pixels_read++;
+                    }
                 }
             }
         }
     }
 
-    if (get_bits(&gb, 6))
-        av_log(0, AV_LOG_ERROR, "DVBSub error: line overflow\n");
-
     (*srcbuf) += (get_bits_count(&gb) + 7) >> 3;
-
     return pixels_read;
 }
 
@@ -592,21 +594,22 @@ static int dvbsub_read_4bit_string(uint8_t *destbuf, int dbuf_len,
         bits = get_bits(&gb, 4);
 
         if (bits) {
-            if (non_mod != 1 || bits != 1) {
-                if (map_table)
-                    *destbuf++ = map_table[bits];
-                else
-                    *destbuf++ = bits;
+            if (pixels_read < dbuf_len) {
+                if (non_mod != 1 || bits != 1) {
+                    if (map_table)
+                        *destbuf++ = map_table[bits];
+                    else
+                        *destbuf++ = bits;
+                }
+                pixels_read++;
             }
-            pixels_read++;
         } else {
             bits = get_bits1(&gb);
             if (bits == 0) {
                 run_length = get_bits(&gb, 3);
 
                 if (run_length == 0) {
-                    (*srcbuf) += (get_bits_count(&gb) + 7) >> 3;
-                    return pixels_read;
+                    break;
                 }
 
                 run_length += 2;
@@ -626,9 +629,10 @@ static int dvbsub_read_4bit_string(uint8_t *destbuf, int dbuf_len,
                     run_length = get_bits(&gb, 2) + 4;
                     bits = get_bits(&gb, 4);
 
-                    if (non_mod == 1 && bits == 1)
-                        pixels_read += run_length;
-                    else {
+                    if (non_mod == 1 && bits == 1) {
+                        if (pixels_read < dbuf_len - run_length)
+                            pixels_read += run_length;
+                    } else {
                         if (map_table)
                             bits = map_table[bits];
                         while (run_length-- > 0 && pixels_read < dbuf_len) {
@@ -642,9 +646,10 @@ static int dvbsub_read_4bit_string(uint8_t *destbuf, int dbuf_len,
                         run_length = get_bits(&gb, 4) + 9;
                         bits = get_bits(&gb, 4);
 
-                        if (non_mod == 1 && bits == 1)
-                            pixels_read += run_length;
-                        else {
+                        if (non_mod == 1 && bits == 1) {
+                            if (pixels_read < dbuf_len - run_length)
+                                pixels_read += run_length;
+                        } else {
                             if (map_table)
                                 bits = map_table[bits];
                             while (run_length-- > 0 && pixels_read < dbuf_len) {
@@ -656,9 +661,10 @@ static int dvbsub_read_4bit_string(uint8_t *destbuf, int dbuf_len,
                         run_length = get_bits(&gb, 8) + 25;
                         bits = get_bits(&gb, 4);
 
-                        if (non_mod == 1 && bits == 1)
-                            pixels_read += run_length;
-                        else {
+                        if (non_mod == 1 && bits == 1) {
+                            if (pixels_read < dbuf_len - run_length)
+                                pixels_read += run_length;
+                        } else {
                             if (map_table)
                                 bits = map_table[bits];
                             while (run_length-- > 0 && pixels_read < dbuf_len) {
@@ -681,19 +687,17 @@ static int dvbsub_read_4bit_string(uint8_t *destbuf, int dbuf_len,
                             bits = map_table[0];
                         else
                             bits = 0;
-                        *destbuf++ = bits;
-                        pixels_read ++;
+                        if (pixels_read < dbuf_len) {
+                            *destbuf++ = bits;
+                            pixels_read ++;
+                        }
                     }
                 }
             }
         }
     }
 
-    if (get_bits(&gb, 8))
-        av_log(0, AV_LOG_ERROR, "DVBSub error: line overflow\n");
-
     (*srcbuf) += (get_bits_count(&gb) + 7) >> 3;
-
     return pixels_read;
 }
 
@@ -708,23 +712,25 @@ static int dvbsub_read_8bit_string(uint8_t *destbuf, int dbuf_len,
 
     destbuf += x_pos;
 
-    while (*srcbuf < sbuf_end && pixels_read < dbuf_len) {
+    while (*srcbuf < sbuf_end) {
         bits = *(*srcbuf)++;
 
         if (bits) {
-            if (non_mod != 1 || bits != 1) {
-                if (map_table)
-                    *destbuf++ = map_table[bits];
-                else
-                    *destbuf++ = bits;
+            if (pixels_read < dbuf_len) {
+                if (non_mod != 1 || bits != 1) {
+                    if (map_table)
+                        *destbuf++ = map_table[bits];
+                    else
+                        *destbuf++ = bits;
+                }
+                pixels_read++;
             }
-            pixels_read++;
         } else {
             bits = *(*srcbuf)++;
             run_length = bits & 0x7f;
             if ((bits & 0x80) == 0) {
                 if (run_length == 0) {
-                    return pixels_read;
+                    break;
                 }
 
                 if (map_table)
@@ -738,20 +744,21 @@ static int dvbsub_read_8bit_string(uint8_t *destbuf, int dbuf_len,
             } else {
                 bits = *(*srcbuf)++;
 
-                if (non_mod == 1 && bits == 1)
-                    pixels_read += run_length;
-                if (map_table)
-                    bits = map_table[bits];
-                else while (run_length-- > 0 && pixels_read < dbuf_len) {
-                    *destbuf++ = bits;
-                    pixels_read++;
+                if (non_mod == 1 && bits == 1) {
+                    if (pixels_read < dbuf_len - run_length);
+                        pixels_read += run_length;
+                }
+                else {
+                    if (map_table)
+                        bits = map_table[bits];
+                    while (run_length-- > 0 && pixels_read < dbuf_len) {
+                        *destbuf++ = bits;
+                        pixels_read++;
+                    }
                 }
             }
         }
     }
-
-    if (*(*srcbuf)++)
-        av_log(0, AV_LOG_ERROR, "DVBSub error: line overflow\n");
 
     return pixels_read;
 }
@@ -1065,7 +1072,7 @@ static void dvbsub_parse_region_segment(AVCodecContext *avctx,
     if (region->width * region->height != region->buf_size) {
         av_free(region->pbuf);
 
-        region->buf_size = region->width * region->height;
+        region->buf_size = region->width * (region->height + 1);
 
         region->pbuf = av_malloc(region->buf_size);
 
@@ -1269,7 +1276,7 @@ static void save_display_set(DVBSubContext *ctx)
 
     if (x_pos >= 0) {
 
-        pbuf = av_malloc(width * height * 4);
+        pbuf = av_malloc(width * (height + 1) * 4);
 
         for (display = ctx->display_list; display; display = display->next) {
             region = get_region(ctx, display->region_id);
@@ -1415,9 +1422,11 @@ static int dvbsub_display_end_segment(AVCodecContext *avctx, const uint8_t *buf,
         switch (region->depth) {
         case 2:
             clut_table = clut->clut4;
+            rect->nb_colors = 4;
             break;
         case 8:
             clut_table = clut->clut256;
+            rect->nb_colors = 256;
             break;
         case 4:
         default:
@@ -1470,7 +1479,7 @@ static int dvbsub_decode(AVCodecContext *avctx,
         av_dlog(avctx, "\n");
 
     if (buf_size <= 6 || *buf != 0x0f) {
-        av_dlog(avctx, "incomplete or broken packet");
+        av_dlog(avctx, "incomplete or broken packet\n");
         return -1;
     }
 
@@ -1486,7 +1495,7 @@ static int dvbsub_decode(AVCodecContext *avctx,
         p += 2;
 
         if (p_end - p < segment_length) {
-            av_dlog(avctx, "incomplete or broken packet");
+            av_dlog(avctx, "incomplete or broken packet\n");
             return -1;
         }
 

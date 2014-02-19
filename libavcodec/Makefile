@@ -12,6 +12,9 @@ HEADERS = avcodec.h                                                     \
           vdpau.h                                                       \
           version.h                                                     \
           xvmc.h                                                        \
+          get_bits.h                                                    \
+          put_bits.h                                                    \
+          mathops.h                                                     \
 
 OBJS = allcodecs.o                                                      \
        audioconvert.o                                                   \

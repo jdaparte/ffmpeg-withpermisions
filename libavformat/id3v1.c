@@ -178,17 +178,20 @@ const char * const ff_id3v1_genre_str[ID3v1_GENRE_MAX + 1] = {
 static void get_string(AVFormatContext *s, const char *key,
                        const uint8_t *buf, int buf_size)
 {
-    int i, c;
+    int i;
     char *q, str[512];
 
     q = str;
     for(i = 0; i < buf_size; i++) {
-        c = buf[i];
-        if (c == '\0')
+        uint8_t tmp;
+        if (buf[i] == '\0')
             break;
+
+        /* XXX: assume the input charset for ID3v1 tags will be ISO-8859-1 */
+        PUT_UTF8(buf[i], tmp, if (q - str < sizeof(str) - 1) *q++ = tmp;)
+
         if ((q - str) >= sizeof(str) - 1)
             break;
-        *q++ = c;
     }
     *q = '\0';
 

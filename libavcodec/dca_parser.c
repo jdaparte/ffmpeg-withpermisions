@@ -25,6 +25,7 @@
 #include "parser.h"
 #include "dca.h"
 #include "dca_parser.h"
+#include "dcadata.h"
 #include "get_bits.h"
 #include "put_bits.h"
 
@@ -196,6 +197,20 @@ static int dca_parse(AVCodecParserContext * s,
 
     *poutbuf = buf;
     *poutbuf_size = buf_size;
+
+    if (!avctx->sample_rate && buf && buf_size >= 10) {
+        /* wyplay bug #2386 */
+        GetBitContext gb;
+        init_get_bits(&gb, buf, buf_size);
+
+        get_bits(&gb, 32);
+        get_bits(&gb, 28);
+        avctx->channels = dca_channels[get_bits(&gb, 6)]; /* amode */
+        avctx->sample_rate = avpriv_dca_sample_rates[get_bits(&gb, 4)];
+        avctx->bit_rate = dca_bit_rates[get_bits(&gb, 5)];
+        av_log(avctx, AV_LOG_DEBUG, "DCA : channels %d sample_rate %d bit_rate %d\n", avctx->channels, avctx->sample_rate, avctx->bit_rate);
+    }
+    
     return next;
 }
 

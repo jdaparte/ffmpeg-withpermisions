@@ -63,6 +63,33 @@ static const AVClass file_class = {
     .version    = LIBAVUTIL_VERSION_INT,
 };
 
+static char *uri_unencode(const char *from)
+{
+    char *res = av_malloc(strlen(from) + 1);
+    char *p = res, c;
+
+    if (res == NULL)
+        return NULL;
+
+    while ((c = *from++) != 0) {
+        if (c == '%') {
+            char ascii[3];
+            
+            if ((ascii[0] = *from++) == 0)
+                break;
+            if ((ascii[1] = *from++) == 0)
+                break;
+            ascii[2] = 0;
+            *p++ = strtol(ascii, NULL, 16);
+        } else
+            *p++ = c;
+    }
+
+    *p++ = 0;
+
+    return res;
+}
+
 static int file_read(URLContext *h, unsigned char *buf, int size)
 {
     FileContext *c = h->priv_data;
@@ -114,9 +141,15 @@ static int file_open(URLContext *h, const char *filename, int flags)
     FileContext *c = h->priv_data;
     int access;
     int fd;
+    char *eol, sv, *path;
     struct stat st;
 
     av_strstart(filename, "file:", &filename);
+
+    if ((eol = strchr(filename, '?'))) {
+	    sv = *eol;
+	    *eol = '\0';
+    }
 
     if (flags & AVIO_FLAG_WRITE && flags & AVIO_FLAG_READ) {
         access = O_CREAT | O_RDWR;
@@ -132,7 +165,11 @@ static int file_open(URLContext *h, const char *filename, int flags)
 #ifdef O_BINARY
     access |= O_BINARY;
 #endif
-    fd = open(filename, access, 0666);
+    path = uri_unencode(filename);
+    fd = open(path, access, 0666);
+    av_free(path);
+    if (eol)
+	    *eol = sv;
     if (fd == -1)
         return AVERROR(errno);
     c->fd = fd;

@@ -30,6 +30,13 @@ LIBAVFORMAT_$MAJOR {
                 ff_timefilter_new;
                 ff_timefilter_update;
                 ff_timefilter_reset;
+                ffio_*;
+                ffurl_*;
+                ff_check_interrupt;
+                ff_program_add_stream_index;
+                ff_wav_codec_get_id;
+                ff_mp3_demuxer;
+                ff_mpegts_demuxer;
                 get_*;
                 put_*;
                 ff_codec_get_id;

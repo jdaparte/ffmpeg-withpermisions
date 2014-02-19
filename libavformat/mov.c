@@ -3134,6 +3134,9 @@ static int mov_read_header(AVFormatContext *s)
     MOVAtom atom = { AV_RL32("root") };
 
     mov->fc = s;
+
+    mov->fc->ctx_flags |= AVFMTCTX_RELIABLE_PTS;
+
     /* .mov and .mp4 aren't streamable anyway (only progressive download if moov is before mdat) */
     if (pb->seekable)
         atom.size = avio_size(pb);

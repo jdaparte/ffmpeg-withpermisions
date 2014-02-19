@@ -457,7 +457,10 @@ enum AVCodecID {
     AV_CODEC_ID_DVB_SUBTITLE,
     AV_CODEC_ID_TEXT,  ///< raw UTF-8 text
     AV_CODEC_ID_XSUB,
+    AV_CODEC_ID_TX3G,
+    AV_CODEC_ID_SMI,   /* Microsoft SAMI (Synchronized Accessible Media Interchange) */
     AV_CODEC_ID_SSA,
+    AV_CODEC_ID_SSAMKV,
     AV_CODEC_ID_MOV_TEXT,
     AV_CODEC_ID_HDMV_PGS_SUBTITLE,
     AV_CODEC_ID_DVB_TELETEXT,
@@ -490,6 +493,11 @@ enum AVCodecID {
                                 * stream (only used by libavformat) */
     AV_CODEC_ID_MPEG4SYSTEMS = 0x20001, /**< _FAKE_ codec to indicate a MPEG-4 Systems
                                 * stream (only used by libavformat) */
+    AV_CODEC_ID_DVB_EIT,
+    AV_CODEC_ID_DVB_PAT,
+    AV_CODEC_ID_DVB_CAT,
+    AV_CODEC_ID_DVB_PMT,
+    AV_CODEC_ID_DVB_ECM,
     AV_CODEC_ID_FFMETADATA = 0x21000,   ///< Dummy codec for streams containing only metadata information.
 
 #if FF_API_CODEC_ID
@@ -727,6 +735,8 @@ typedef struct RcOverride{
 #endif
 #define CODEC_FLAG2_CHUNKS        0x00008000 ///< Input bitstream might be truncated at a packet boundaries instead of only at frame boundaries.
 #define CODEC_FLAG2_SHOW_ALL      0x00400000 ///< Show all frames before the first keyframe
+
+#define CODEC_FLAG2_NO_FPS        0x80000000 ///< if the framerate is variable or unreliable
 
 /* Unsupported options :
  *              Syntax Arithmetic coding (SAC)
@@ -3496,6 +3506,10 @@ typedef struct AVSubtitleRect {
 
     int flags;
 } AVSubtitleRect;
+
+#define SUB_FMT_RGB	0
+#define SUB_FMT_INDEXED	1
+#define SUB_FMT_TEXT	2
 
 typedef struct AVSubtitle {
     uint16_t format; /* 0 = graphics */

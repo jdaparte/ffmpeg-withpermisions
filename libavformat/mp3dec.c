@@ -53,6 +53,7 @@ static int mp3_read_probe(AVProbeData *p)
     AVCodecContext avctx;
 
     buf0 = p->buf;
+    //for (; buf0 < p->buf + p->buf_size && *buf0 == 0; buf0++);  // skip leading zeroes
     end = p->buf + p->buf_size - sizeof(uint32_t);
     while(buf0 < end && !*buf0)
         buf0++;

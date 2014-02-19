@@ -267,6 +267,8 @@ int64_t ff_iso8601_to_unix_time(const char *datestr);
  */
 int ff_seek_frame_binary(AVFormatContext *s, int stream_index,
                          int64_t target_ts, int flags);
+int ff_seek_frame_binary2(AVFormatContext *s, int stream_index,
+                         int64_t target_ts, int flags, int (*cb)(void*), void *userdata);
 
 /**
  * Update cur_dts of all streams based on the given timestamp and AVStream.
@@ -290,6 +292,13 @@ int64_t ff_gen_search(AVFormatContext *s, int stream_index,
                       int64_t ts_min, int64_t ts_max,
                       int flags, int64_t *ts_ret,
                       int64_t (*read_timestamp)(struct AVFormatContext *, int , int64_t *, int64_t ));
+int64_t ff_gen_search2(AVFormatContext *s, int stream_index,
+                      int64_t target_ts, int64_t pos_min,
+                      int64_t pos_max, int64_t pos_limit,
+                      int64_t ts_min, int64_t ts_max,
+                      int flags, int64_t *ts_ret,
+                      int64_t (*read_timestamp)(struct AVFormatContext *, int , int64_t *, int64_t),
+                      int (*cb)(void*), void *userdata);
 
 /**
  * Set the time base and wrapping info for a given stream. This will be used

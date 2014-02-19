@@ -711,6 +711,17 @@ typedef struct AVStream {
 
     int64_t nb_frames;                 ///< number of frames in this stream if known or 0
 
+    /** language_type :
+       0x00: undefined
+       0x01: clean effects
+       0x02: hearing impaired
+       0x03: visual impaired commentary
+    */
+    uint8_t language_type;
+
+    /* component tag as defined in mpeg2 transport stream specification */
+    uint8_t component_tag;
+
     int disposition; /**< AV_DISPOSITION_* bit field */
 
     enum AVDiscard discard; ///< Selects which packets can be discarded at will and do not need to be demuxed.
@@ -911,6 +922,7 @@ typedef struct AVProgram {
 
 #define AVFMTCTX_NOHEADER      0x0001 /**< signal that no header is present
                                          (streams are added dynamically) */
+#define AVFMTCTX_RELIABLE_PTS  0x0002 /**< signal that timestamps are reliable */
 
 typedef struct AVChapter {
     int id;                 ///< unique ID to identify the chapter
@@ -1535,6 +1547,7 @@ int av_find_stream_info(AVFormatContext *ic);
  *       we do not waste time getting stuff the user does not need.
  */
 int avformat_find_stream_info(AVFormatContext *ic, AVDictionary **options);
+int avformat_find_stream_info2(AVFormatContext *ic, AVDictionary **options, int (*cb)(void *), void *userdata);
 
 /**
  * Find the programs which belong to a given stream.
@@ -1636,6 +1649,7 @@ int av_read_frame(AVFormatContext *s, AVPacket *pkt);
  */
 int av_seek_frame(AVFormatContext *s, int stream_index, int64_t timestamp,
                   int flags);
+int av_seek_frame2(AVFormatContext *s, int stream_index, int64_t timestamp, int flags, int (* cb)(void *), void * userdata);
 
 /**
  * Seek to timestamp ts.
@@ -1664,6 +1678,7 @@ int av_seek_frame(AVFormatContext *s, int stream_index, int64_t timestamp,
  *       ABI compatibility yet!
  */
 int avformat_seek_file(AVFormatContext *s, int stream_index, int64_t min_ts, int64_t ts, int64_t max_ts, int flags);
+int avformat_seek_file2(AVFormatContext *s, int stream_index, int64_t min_ts, int64_t ts, int64_t max_ts, int flags, int (*cb)(void *), void *userdata);
 
 /**
  * Start playing a network-based stream (e.g. RTSP stream) at the

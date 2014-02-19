@@ -88,6 +88,7 @@ typedef struct AVIOContext {
                                  no more data has been received yet. */
     void *opaque;           /**< A private pointer, passed to the read/write/seek/...
                                  functions. */
+    void *url;
     int (*read_packet)(void *opaque, uint8_t *buf, int buf_size);
     int (*write_packet)(void *opaque, uint8_t *buf, int buf_size);
     int64_t (*seek)(void *opaque, int64_t offset, int whence);
@@ -255,6 +256,8 @@ int64_t avio_size(AVIOContext *s);
  * @return non zero if and only if end of file
  */
 int url_feof(AVIOContext *s);
+
+char *url_fgets(AVIOContext *s, char *buf, int buf_size);
 
 /** @warning currently size is limited */
 int avio_printf(AVIOContext *s, const char *fmt, ...) av_printf_format(2, 3);

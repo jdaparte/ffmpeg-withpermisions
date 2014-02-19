@@ -1775,6 +1775,11 @@ static int64_t ff_read_timestamp(AVFormatContext *s, int stream_index, int64_t *
 
 int ff_seek_frame_binary(AVFormatContext *s, int stream_index, int64_t target_ts, int flags)
 {
+    return ff_seek_frame_binary2(s, stream_index, target_ts, flags, NULL, NULL);
+}
+
+int ff_seek_frame_binary2(AVFormatContext *s, int stream_index, int64_t target_ts, int flags, int (*cb)(void*), void *userdata)
+{
     AVInputFormat *avif= s->iformat;
     int64_t av_uninit(pos_min), av_uninit(pos_max), pos, pos_limit;
     int64_t ts_min, ts_max, ts;
@@ -1821,7 +1826,7 @@ int ff_seek_frame_binary(AVFormatContext *s, int stream_index, int64_t target_ts
         }
     }
 
-    pos= ff_gen_search(s, stream_index, target_ts, pos_min, pos_max, pos_limit, ts_min, ts_max, flags, &ts, avif->read_timestamp);
+    pos= ff_gen_search2(s, stream_index, target_ts, pos_min, pos_max, pos_limit, ts_min, ts_max, flags, &ts, avif->read_timestamp, cb, userdata);
     if(pos<0)
         return -1;
 
@@ -1839,6 +1844,18 @@ int64_t ff_gen_search(AVFormatContext *s, int stream_index, int64_t target_ts,
                       int64_t pos_min, int64_t pos_max, int64_t pos_limit,
                       int64_t ts_min, int64_t ts_max, int flags, int64_t *ts_ret,
                       int64_t (*read_timestamp)(struct AVFormatContext *, int , int64_t *, int64_t ))
+{
+    return ff_gen_search2(s, stream_index, target_ts,
+                          pos_min, pos_max, pos_limit,
+                          ts_min, ts_max, flags, ts_ret,
+                          read_timestamp, NULL, NULL);
+}
+
+int64_t ff_gen_search2(AVFormatContext *s, int stream_index, int64_t target_ts,
+                      int64_t pos_min, int64_t pos_max, int64_t pos_limit,
+                      int64_t ts_min, int64_t ts_max, int flags, int64_t *ts_ret,
+                      int64_t (*read_timestamp)(struct AVFormatContext *, int , int64_t *, int64_t),
+                      int (*cb)(void*), void *userdata)
 {
     int64_t pos, ts;
     int64_t start_pos, filesize;
@@ -1866,7 +1883,33 @@ int64_t ff_gen_search(AVFormatContext *s, int stream_index, int64_t target_ts,
             pos_max = FFMAX(0, pos_max - step);
             ts_max = ff_read_timestamp(s, stream_index, &pos_max, pos_max + step, read_timestamp);
             step += step;
-        }while(ts_max == AV_NOPTS_VALUE && pos_max > 0);
+            
+            if (cb && cb(userdata))
+                return -1;
+        }while(ts_max == AV_NOPTS_VALUE && pos_max > 0 && step < 1024 * 1024);
+
+        /* if no luck the brute force way, try dichotomy */
+        if (ts_max == AV_NOPTS_VALUE) {
+            int64_t min, cur, oldts;
+            step = 1024;
+            pos_max -= step;
+            min = pos_min + (pos_max - pos_min) % step;
+            while (pos_max - min >= step) {
+                cur = ((min + pos_max) / (2*step)) * step;
+                oldts = ts_max;
+                ts_max = read_timestamp(s, stream_index, &cur, INT64_MAX);
+                if (ts_max == AV_NOPTS_VALUE)
+                    pos_max = cur;
+                else
+                    min = cur;
+            }
+            if (ts_max == AV_NOPTS_VALUE && cur >= step) {
+                pos_max = cur - step;
+                ts_max = read_timestamp(s, stream_index, &pos_max, INT64_MAX);
+            } else
+                pos_max = cur;
+        }
+        
         if (ts_max == AV_NOPTS_VALUE)
             return -1;
 
@@ -1879,6 +1922,9 @@ int64_t ff_gen_search(AVFormatContext *s, int stream_index, int64_t target_ts,
             pos_max= tmp_pos;
             if(tmp_pos >= filesize)
                 break;
+
+            if (cb && cb(userdata))
+                return -1;
         }
         pos_limit= pos_max;
     }
@@ -1942,6 +1988,9 @@ int64_t ff_gen_search(AVFormatContext *s, int stream_index, int64_t target_ts,
             pos_min = pos;
             ts_min = ts;
         }
+
+        if (cb && cb(userdata))
+            return -1;          
     }
 
     pos = (flags & AVSEEK_FLAG_BACKWARD) ? pos_min : pos_max;
@@ -1973,7 +2022,8 @@ static int seek_frame_byte(AVFormatContext *s, int stream_index, int64_t pos, in
 }
 
 static int seek_frame_generic(AVFormatContext *s,
-                                 int stream_index, int64_t timestamp, int flags)
+                                 int stream_index, int64_t timestamp,
+                                 int flags, int (* cb)(void *), void * userdata)
 {
     int index;
     int64_t ret;
@@ -2017,6 +2067,10 @@ static int seek_frame_generic(AVFormatContext *s,
                     break;
                 }
             }
+
+            if (cb && cb(userdata))
+                return -1;
+
         }
         index = av_index_search_timestamp(st, timestamp, flags);
     }
@@ -2037,7 +2091,8 @@ static int seek_frame_generic(AVFormatContext *s,
 }
 
 static int seek_frame_internal(AVFormatContext *s, int stream_index,
-                               int64_t timestamp, int flags)
+                               int64_t timestamp, int flags,
+                               int (*cb)(void *), void *userdata)
 {
     int ret;
     AVStream *st;
@@ -2071,10 +2126,10 @@ static int seek_frame_internal(AVFormatContext *s, int stream_index,
 
     if (s->iformat->read_timestamp && !(s->iformat->flags & AVFMT_NOBINSEARCH)) {
         ff_read_frame_flush(s);
-        return ff_seek_frame_binary(s, stream_index, timestamp, flags);
+        return ff_seek_frame_binary2(s, stream_index, timestamp, flags, cb, userdata);
     } else if (!(s->iformat->flags & AVFMT_NOGENSEARCH)) {
         ff_read_frame_flush(s);
-        return seek_frame_generic(s, stream_index, timestamp, flags);
+        return seek_frame_generic(s, stream_index, timestamp, flags, cb, userdata);
     }
     else
         return -1;
@@ -2082,7 +2137,13 @@ static int seek_frame_internal(AVFormatContext *s, int stream_index,
 
 int av_seek_frame(AVFormatContext *s, int stream_index, int64_t timestamp, int flags)
 {
-    int ret = seek_frame_internal(s, stream_index, timestamp, flags);
+    return av_seek_frame2(s, stream_index, timestamp, flags, NULL, NULL);
+}
+
+int av_seek_frame2(AVFormatContext *s, int stream_index, int64_t timestamp, int flags,
+                   int (*cb)(void *), void *userdata)
+{
+    int ret = seek_frame_internal(s, stream_index, timestamp, flags, cb, userdata);
 
     if (ret >= 0)
         avformat_queue_attached_pictures(s);
@@ -2091,6 +2152,12 @@ int av_seek_frame(AVFormatContext *s, int stream_index, int64_t timestamp, int f
 }
 
 int avformat_seek_file(AVFormatContext *s, int stream_index, int64_t min_ts, int64_t ts, int64_t max_ts, int flags)
+{
+    return avformat_seek_file2(s, stream_index, min_ts, ts, max_ts, flags, NULL, NULL);
+}
+
+int avformat_seek_file2(AVFormatContext *s, int stream_index, int64_t min_ts, int64_t ts, int64_t max_ts, int flags,
+                        int (*cb)(void *), void *userdata)
 {
     if(min_ts > ts || max_ts < ts)
         return -1;
@@ -2128,11 +2195,11 @@ int avformat_seek_file(AVFormatContext *s, int stream_index, int64_t min_ts, int
     //Note the old has somewhat different semantics
     if (s->iformat->read_seek || 1) {
         int dir = (ts - (uint64_t)min_ts > (uint64_t)max_ts - ts ? AVSEEK_FLAG_BACKWARD : 0);
-        int ret = av_seek_frame(s, stream_index, ts, flags | dir);
+        int ret = av_seek_frame2(s, stream_index, ts, flags | dir, cb, userdata);
         if (ret<0 && ts != min_ts && max_ts != ts) {
-            ret = av_seek_frame(s, stream_index, dir ? max_ts : min_ts, flags | dir);
+            ret = av_seek_frame2(s, stream_index, dir ? max_ts : min_ts, flags | dir, cb, userdata);
             if (ret >= 0)
-                ret = av_seek_frame(s, stream_index, ts, flags | (dir^AVSEEK_FLAG_BACKWARD));
+                ret = av_seek_frame2(s, stream_index, ts, flags | (dir^AVSEEK_FLAG_BACKWARD), cb, userdata);
         }
         return ret;
     }
@@ -2686,7 +2753,8 @@ int av_find_stream_info(AVFormatContext *ic)
 }
 #endif
 
-int avformat_find_stream_info(AVFormatContext *ic, AVDictionary **options)
+
+int avformat_find_stream_info2(AVFormatContext *ic, AVDictionary **options, int (* cb)(void *), void * userdata)
 {
     int i, count, ret, read_size, j;
     AVStream *st;
@@ -2815,6 +2883,11 @@ int avformat_find_stream_info(AVFormatContext *ic, AVDictionary **options)
                     av_log(ic, AV_LOG_WARNING,
                            "Stream #%d: not enough frames to estimate rate; "
                            "consider increasing probesize\n", i);
+            break;
+        }
+
+        if (cb && cb(userdata)) {
+            ret = count;
             break;
         }
 
@@ -2994,7 +3067,9 @@ int avformat_find_stream_info(AVFormatContext *ic, AVDictionary **options)
     }
     for(i=0;i<ic->nb_streams;i++) {
         st = ic->streams[i];
-        if (st->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
+        if (st->codec->codec_type == AVMEDIA_TYPE_VIDEO
+             /*workarround for bug 4771 : trust divx framerate, this need to be tested on avi demux too*/
+            && !( 0 == strcmp(ic->iformat->name, "divx" ) && st->r_frame_rate.num )) {
             if(st->codec->codec_id == AV_CODEC_ID_RAWVIDEO && !st->codec->codec_tag && !st->codec->bits_per_coded_sample){
                 uint32_t tag= avcodec_pix_fmt_to_codec_tag(st->codec->pix_fmt);
                 if (avpriv_find_pix_fmt(ff_raw_pix_fmt_tags, tag) == st->codec->pix_fmt)
@@ -3107,6 +3182,11 @@ int avformat_find_stream_info(AVFormatContext *ic, AVDictionary **options)
     if(ic->pb)
         av_log(ic, AV_LOG_DEBUG, "File position after avformat_find_stream_info() is %"PRId64"\n", avio_tell(ic->pb));
     return ret;
+}
+
+int avformat_find_stream_info(AVFormatContext *ic, AVDictionary **options)
+{
+    return avformat_find_stream_info2(ic, options, NULL, NULL);
 }
 
 AVProgram *av_find_program_from_stream(AVFormatContext *ic, AVProgram *last, int s)

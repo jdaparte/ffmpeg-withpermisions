@@ -85,6 +85,7 @@ typedef struct URLProtocol {
     int (*url_get_multi_file_handle)(URLContext *h, int **handles,
                                      int *numhandles);
     int (*url_shutdown)(URLContext *h, int flags);
+    int (*url_ctl)(URLContext *h, int cmd, void *arg);
     int priv_data_size;
     const AVClass *priv_data_class;
     int flags;
@@ -247,5 +248,8 @@ URLProtocol *ffurl_protocol_next(URLProtocol *prev);
 /* udp.c */
 int ff_udp_set_remote_url(URLContext *h, const char *uri);
 int ff_udp_get_local_port(URLContext *h);
+
+int url_ctl(URLContext *h, int cmd, void *arg);
+URLContext *url_fileno(AVIOContext *s);
 
 #endif /* AVFORMAT_URL_H */

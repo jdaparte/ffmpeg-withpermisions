@@ -231,6 +231,13 @@ int64_t avio_seek(AVIOContext *s, int64_t offset, int whence)
         if (s->eof_reached)
             return AVERROR_EOF;
         s->buf_ptr = s->buf_end + offset - s->pos;
+        if (s->buf_ptr > s->buf_end) {
+            s->buf_ptr = s->buf_end;
+            offset = s->pos;
+            s->eof_reached = 1; /* XXX not always the case, but its cleaner this way */
+            s->error = 0;
+            return offset;
+        }
     } else {
         int64_t res;
 
@@ -249,6 +256,7 @@ int64_t avio_seek(AVIOContext *s, int64_t offset, int whence)
         s->pos = offset;
     }
     s->eof_reached = 0;
+    s->error = 0;
     return offset;
 }
 
@@ -714,6 +722,7 @@ int ffio_fdopen(AVIOContext **s, URLContext *h)
     (*s)->direct = h->flags & AVIO_FLAG_DIRECT;
     (*s)->seekable = h->is_streamed ? 0 : AVIO_SEEKABLE_NORMAL;
     (*s)->max_packet_size = max_packet_size;
+    (*s)->url = h;
     if(h->prot) {
         (*s)->read_pause = (int (*)(void *, int))h->prot->url_read_pause;
         (*s)->read_seek  = (int64_t (*)(void *, int, int64_t, int))h->prot->url_read_seek;
@@ -838,6 +847,32 @@ int avio_closep(AVIOContext **s)
     int ret = avio_close(*s);
     *s = NULL;
     return ret;
+}
+
+URLContext *url_fileno(AVIOContext *s)
+{
+    return s->url;
+}
+
+char *url_fgets(AVIOContext *s, char *buf, int buf_size)
+{
+    int c;
+    char *q;
+
+    c = avio_r8(s);
+    if (s->eof_reached)
+        return NULL;
+    q = buf;
+    for(;;) {
+        if (s->eof_reached || c == '\n')
+            break;
+        if ((q - buf) < buf_size - 1)
+            *q++ = c;
+        c = avio_r8(s);
+    }
+    if (buf_size > 0)
+        *q = '\0';
+    return buf;
 }
 
 int avio_printf(AVIOContext *s, const char *fmt, ...)

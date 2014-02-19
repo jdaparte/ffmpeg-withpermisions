@@ -329,6 +329,8 @@ int64_t ffurl_seek(URLContext *h, int64_t pos, int whence)
 {
     int64_t ret;
 
+    if (!h || !h->prot)
+        return AVERROR(EINVAL);
     if (!h->prot->url_seek)
         return AVERROR(ENOSYS);
     ret = h->prot->url_seek(h, pos, whence & ~AVSEEK_FORCE);
@@ -361,7 +363,19 @@ int ffurl_close(URLContext *h)
     return ffurl_closep(&h);
 }
 
+int url_ctl(URLContext *h, int cmd, void *arg)
+{
+    int ret;
 
+    if (!h || !h->prot)
+	    return AVERROR(EINVAL);
+	if (!h->prot->url_ctl)
+        return AVERROR(ENOTTY);
+
+	ret = h->prot->url_ctl(h, cmd, arg);
+	return ret;
+}
+ 
 int avio_check(const char *url, int flags)
 {
     URLContext *h;

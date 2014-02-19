@@ -792,7 +792,8 @@ static int avi_read_header(AVFormatContext *s)
         return AVERROR_INVALIDDATA;
     }
 
-    if(!avi->index_loaded && pb->seekable)
+    /* wyplay bug #2419 : ignore streamed flag so that we have an index anyway */
+    if(!avi->index_loaded /*&& pb->seekable*/)
         avi_load_index(s);
     avi->index_loaded |= 1;
     avi->non_interleaved |= guess_ni_flag(s) | (s->flags & AVFMT_FLAG_SORT_DTS);
@@ -1146,7 +1147,7 @@ resync:
             size= ast->remaining;
         avi->last_pkt_pos= avio_tell(pb);
         err= av_get_packet(pb, pkt, size);
-        if(err<0)
+        if(err < size)
             return err;
         size = err;
 

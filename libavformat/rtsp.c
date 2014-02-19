@@ -1482,7 +1482,7 @@ int ff_rtsp_connect(AVFormatContext *s)
 {
     RTSPState *rt = s->priv_data;
     char host[1024], path[1024], tcpname[1024], cmd[2048], auth[128];
-    int port, err, tcp_fd;
+    int i, port, err, tcp_fd;
     RTSPMessageHeader reply1 = {0}, *reply = &reply1;
     int lower_transport_mask = 0;
     char real_challenge[64] = "";
@@ -1698,6 +1698,14 @@ redirect:
     av_strlcpy(rt->real_challenge, real_challenge, sizeof(rt->real_challenge));
     rt->state = RTSP_STATE_IDLE;
     rt->seek_timestamp = 0; /* default is to start stream at position zero */
+    
+    for (i=0 ; i< s->nb_streams; i++) {
+        if(s->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO) {
+            if( ( s->streams[i]->r_frame_rate.num == 0 ) || ( s->streams[i]->r_frame_rate.den == 0) )
+                s->streams[i]->codec->flags2 |= CODEC_FLAG2_NO_FPS;
+        }
+    }
+    
     return 0;
  fail:
     ff_rtsp_close_streams(s);

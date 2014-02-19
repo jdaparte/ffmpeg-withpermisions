@@ -867,6 +867,11 @@ retry:
     }
     rt->packets++;
 
+    /* XXX to investigate : maybe we should do this on all divx media */
+    if(s->streams[pkt->stream_index]->codec->codec_type == CODEC_TYPE_VIDEO){
+        pkt->pts = pkt->pts - s->streams[pkt->stream_index]->start_time;
+    }
+
     if (!(rt->rtsp_flags & RTSP_FLAG_LISTEN)) {
         /* send dummy request to keep TCP connection alive */
         if ((av_gettime() - rt->last_cmd_time) / 1000000 >= rt->timeout / 2 ||

@@ -53,7 +53,7 @@ static int hevc_probe(AVProbeData *p)
     // printf("vps=%d, sps=%d, pps=%d, idr=%d\n", vps, sps, pps, idr);
 
     if (vps && sps && pps && idr)
-        return AVPROBE_SCORE_EXTENSION + 1; // 1 more than .mpg
+        return AVPROBE_SCORE_MAX + 1; // 1 more than .mpg
     return 0;
 }
 

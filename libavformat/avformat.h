@@ -918,6 +918,11 @@ typedef struct AVProgram {
 
     int64_t pts_wrap_reference;    ///< reference dts for wrap detection
     int pts_wrap_behavior;         ///< behavior on wrap detection
+
+    /**
+     * Scrambling extradata
+     */
+    uint32_t scrambling_extradata;
 } AVProgram;
 
 #define AVFMTCTX_NOHEADER      0x0001 /**< signal that no header is present

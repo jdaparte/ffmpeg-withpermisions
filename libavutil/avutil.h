@@ -190,6 +190,15 @@ const char *av_get_media_type_string(enum AVMediaType media_type);
 #define AV_NOPTS_VALUE          ((int64_t)UINT64_C(0x8000000000000000))
 
 /**
+ * @brief Undefined scrambling mode value
+ *
+ * Usually reported by demuxer that work on Transport Stream that do not provide
+ * scrambling mode in PMT.
+ */
+
+#define AV_NO_SCRAMBLING_MODE_VALUE ((uint32_t)0xFF)
+
+/**
  * Internal time base represented as integer
  */
 

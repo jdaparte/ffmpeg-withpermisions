@@ -3460,6 +3460,8 @@ AVProgram *av_new_program(AVFormatContext *ac, int id)
     program->start_time =
     program->end_time   = AV_NOPTS_VALUE;
 
+    program->scrambling_extradata = AV_NO_SCRAMBLING_MODE_VALUE;
+
     return program;
 }
 
@@ -3674,8 +3676,11 @@ void av_dump_format(AVFormatContext *ic,
         for(j=0; j<ic->nb_programs; j++) {
             AVDictionaryEntry *name = av_dict_get(ic->programs[j]->metadata,
                                                   "name", NULL, 0);
-            av_log(NULL, AV_LOG_INFO, "  Program %d %s\n", ic->programs[j]->id,
+            av_log(NULL, AV_LOG_INFO, "  Program %d %s", ic->programs[j]->id,
                    name ? name->value : "");
+            if (ic->programs[j]->scrambling_extradata != AV_NO_SCRAMBLING_MODE_VALUE)
+                av_log(NULL, AV_LOG_INFO, " (scrambling extradata: 0x%x)", ic->programs[j]->scrambling_extradata);
+            av_log(NULL, AV_LOG_INFO, "\n");
             dump_metadata(NULL, ic->programs[j]->metadata, "    ");
             for(k=0; k<ic->programs[j]->nb_stream_indexes; k++) {
                 dump_stream_format(ic, ic->programs[j]->stream_index[k], index, is_output);

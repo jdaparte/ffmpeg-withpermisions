@@ -811,7 +811,7 @@ static void dvbsub_parse_pixel_data_block(AVCodecContext *avctx, DVBSubObjectDis
     y_pos += top_bottom;
 
     while (buf < buf_end) {
-        if ((*buf!=0xf0 && x_pos >= region->width) || y_pos >= region->height) {
+        if ((*buf!=0xf0 && x_pos > region->width) || y_pos > region->height) {
             av_log(avctx, AV_LOG_ERROR, "Invalid object location! %d-%d %d-%d %02x\n", x_pos, region->width, y_pos, region->height, *buf);
             return;
         }
@@ -875,7 +875,8 @@ static void dvbsub_parse_pixel_data_block(AVCodecContext *avctx, DVBSubObjectDis
             y_pos += 2;
             break;
         default:
-            av_log(avctx, AV_LOG_INFO, "Unknown/unsupported pixel block 0x%x\n", *(buf-1));
+//            av_log(avctx, AV_LOG_INFO, "Unknown/unsupported pixel block 0x%x\n", *(buf-1));
+            break;
         }
     }
 

@@ -618,7 +618,7 @@ int avformat_open_input(AVFormatContext **ps, const char *filename, AVInputForma
     }
 
     /* e.g. AVFMT_NOFILE formats will not have a AVIOContext */
-    if (s->pb)
+    if (s->pb && (!options || !*options || !av_dict_get(*options, "noid3", NULL, 0)))
         ff_id3v2_read(s, ID3v2_DEFAULT_MAGIC, &id3v2_extra_meta);
 
     if (!(s->flags&AVFMT_FLAG_PRIV_OPT) && s->iformat->read_header)

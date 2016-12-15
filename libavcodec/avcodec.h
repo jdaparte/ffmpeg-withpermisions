@@ -500,6 +500,7 @@ enum AVCodecID {
     AV_CODEC_ID_DVB_PMT,
     AV_CODEC_ID_DVB_ECM,
     AV_CODEC_ID_PERSEUS,
+    AV_CODEC_ID_DSS,
     AV_CODEC_ID_FFMETADATA = 0x21000,   ///< Dummy codec for streams containing only metadata information.
 
 #if FF_API_CODEC_ID

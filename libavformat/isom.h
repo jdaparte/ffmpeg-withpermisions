@@ -164,6 +164,7 @@ typedef struct MOVContext {
     int ignore_editlist;
     int flags;
     int64_t next_root_atom; ///< offset of the next root atom
+    int64_t start_time; ///< first DTS
 } MOVContext;
 
 int ff_mp4_read_descr_len(AVIOContext *pb);

@@ -2185,10 +2185,11 @@ static int mov_open_dref(AVIOContext **pb, const char *src, MOVDref *ref,
 static void fix_timescale(MOVContext *c, MOVStreamContext *sc)
 {
     if (sc->time_scale <= 0) {
-        av_log(c->fc, AV_LOG_WARNING, "stream %d, timescale not set\n", sc->ffindex);
         sc->time_scale = c->time_scale;
-        if (sc->time_scale <= 0)
+        if (sc->time_scale <= 0) {
+            av_log(c->fc, AV_LOG_WARNING, "stream %d, timescale not set\n", sc->ffindex);
             sc->time_scale = 1;
+        }
     }
 }
 
@@ -2595,7 +2596,11 @@ static int mov_read_trun(MOVContext *c, AVIOContext *pb, MOVAtom atom)
 
     if (flags & MOV_TRUN_DATA_OFFSET)        data_offset        = avio_rb32(pb);
     if (flags & MOV_TRUN_FIRST_SAMPLE_FLAGS) first_sample_flags = avio_rb32(pb);
-    dts    = sc->track_end - sc->time_offset;
+    if (c->start_time) {
+        dts = c->start_time;
+        c->start_time = 0;
+    } else
+        dts = sc->track_end - sc->time_offset;
     offset = frag->base_data_offset + data_offset;
     distance = 0;
     av_dlog(c->fc, "first sample flags 0x%x\n", first_sample_flags);
@@ -3457,6 +3462,12 @@ static const AVOption options[] = {
         0, 1, AV_OPT_FLAG_VIDEO_PARAM|AV_OPT_FLAG_DECODING_PARAM},
     {"ignore_editlist", "", offsetof(MOVContext, ignore_editlist), FF_OPT_TYPE_INT, {.i64 = 0},
         0, 1, AV_OPT_FLAG_VIDEO_PARAM|AV_OPT_FLAG_DECODING_PARAM},
+    {"start_time", "first dts of the stream, used for mss",
+        offsetof(MOVContext, start_time), FF_OPT_TYPE_INT64, {.i64 = 0},
+        0, INT64_MAX, AV_OPT_FLAG_DECODING_PARAM},
+    {"time_scale", "default global time_scale, used for mss",
+        offsetof(MOVContext, time_scale), FF_OPT_TYPE_INT, {.i64 = 0},
+        0, INT_MAX, AV_OPT_FLAG_DECODING_PARAM},
     {NULL}
 };
 

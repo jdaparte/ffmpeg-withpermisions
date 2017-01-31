@@ -4109,10 +4109,11 @@ static int mov_open_dref(MOVContext *c, AVIOContext **pb, const char *src, MOVDr
 static void fix_timescale(MOVContext *c, MOVStreamContext *sc)
 {
     if (sc->time_scale <= 0) {
-        av_log(c->fc, AV_LOG_WARNING, "stream %d, timescale not set\n", sc->ffindex);
         sc->time_scale = c->time_scale;
-        if (sc->time_scale <= 0)
+        if (sc->time_scale <= 0) {
+            av_log(c->fc, AV_LOG_WARNING, "stream %d, timescale not set\n", sc->ffindex);
             sc->time_scale = 1;
+        }
     }
 }
 
@@ -4724,12 +4725,22 @@ static int mov_read_trun(MOVContext *c, AVIOContext *pb, MOVAtom atom)
             av_log(c->fc, AV_LOG_DEBUG, "found tfdt time %"PRId64
                     ", using it for dts\n", dts);
         } else {
-            dts = sc->track_end - sc->time_offset;
+            if (c->start_time) {
+                dts = c->start_time;
+                c->start_time = 0;
+            } else {
+                dts = sc->track_end - sc->time_offset;
+            }
             av_log(c->fc, AV_LOG_DEBUG, "found track end time %"PRId64
                     ", using it for dts\n", dts);
         }
     } else {
-        dts = sc->track_end - sc->time_offset;
+        if (c->start_time) {
+            dts = c->start_time;
+            c->start_time = 0;
+        } else {
+            dts = sc->track_end - sc->time_offset;
+        }
         av_log(c->fc, AV_LOG_DEBUG, "found track end time %"PRId64
                 ", using it for dts\n", dts);
     }
@@ -7701,6 +7712,12 @@ static const AVOption mov_options[] = {
         "MOV demuxer flags",
         OFFSET(flags), AV_OPT_TYPE_FLAGS, {.i64 = MOV_FLAG_NOTSET},
         INT_MIN, INT_MAX, FLAGS, "movdflags"},
+    {"start_time", "first dts of the stream, used for mss",
+        offsetof(MOVContext, start_time), AV_OPT_TYPE_INT64, {.i64 = 0},
+        0, INT64_MAX, AV_OPT_FLAG_DECODING_PARAM},
+    {"time_scale", "default global time_scale, used for mss",
+        offsetof(MOVContext, time_scale), AV_OPT_TYPE_INT, {.i64 = 0},
+        0, INT_MAX, AV_OPT_FLAG_DECODING_PARAM},
     {"hls",
         "Try to read additional concatened root atoms instead of reporting EOF in read_packet",
         OFFSET(flags), AV_OPT_TYPE_CONST, {.i64 = MOV_FLAG_HLS},

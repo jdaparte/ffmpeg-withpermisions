@@ -58,7 +58,7 @@ typedef struct SubStream {
     /// For each channel output by the matrix, the output channel to map it to
     uint8_t     ch_assign[MAX_CHANNELS];
     /// The channel layout for this substream
-    uint64_t    ch_layout;
+    uint64_t    mask;
     /// The matrix encoding mode for this substream
     enum AVMatrixEncoding matrix_encoding;
 
@@ -369,19 +369,19 @@ static int read_major_sync(MLPDecodeContext *m, GetBitContext *gb)
      * major sync. */
     if (m->avctx->codec_id == AV_CODEC_ID_MLP) {
         if ((substr = (mh.num_substreams > 1)))
-            m->substream[0].ch_layout = AV_CH_LAYOUT_STEREO;
-        m->substream[substr].ch_layout = mh.channel_layout_mlp;
+            m->substream[0].mask = AV_CH_LAYOUT_STEREO;
+        m->substream[substr].mask = mh.channel_layout_mlp;
     } else {
         if ((substr = (mh.num_substreams > 1)))
-            m->substream[0].ch_layout = AV_CH_LAYOUT_STEREO;
+            m->substream[0].mask = AV_CH_LAYOUT_STEREO;
         if (mh.num_substreams > 2)
             if (mh.channel_layout_thd_stream2)
-                m->substream[2].ch_layout = mh.channel_layout_thd_stream2;
+                m->substream[2].mask = mh.channel_layout_thd_stream2;
             else
-                m->substream[2].ch_layout = mh.channel_layout_thd_stream1;
-        m->substream[substr].ch_layout = mh.channel_layout_thd_stream1;
+                m->substream[2].mask = mh.channel_layout_thd_stream1;
+        m->substream[substr].mask = mh.channel_layout_thd_stream1;
 
-        if (m->avctx->channels<=2 && m->substream[substr].ch_layout == AV_CH_LAYOUT_MONO && m->max_decoded_substream == 1) {
+        if (m->avctx->channels<=2 && m->substream[substr].mask == AV_CH_LAYOUT_MONO && m->max_decoded_substream == 1) {
             av_log(m->avctx, AV_LOG_DEBUG, "Mono stream with 2 substreams, ignoring 2nd\n");
             m->max_decoded_substream = 0;
             if (m->avctx->channels==2)
@@ -505,23 +505,12 @@ static int read_restart_header(MLPDecodeContext *m, GetBitContext *gbp,
     s->max_channel = max_channel;
     s->max_matrix_channel = matrix_channel;
 
-#if FF_API_REQUEST_CHANNELS
-    if (m->avctx->request_channels > 0 &&
-        m->avctx->request_channels <= s->max_channel + 1 &&
-        m->max_decoded_substream > substr) {
-        av_log(m->avctx, AV_LOG_DEBUG,
-               "Extracting %d-channel downmix from substream %d. "
-               "Further substreams will be skipped.\n",
-               s->max_channel + 1, substr);
-        m->max_decoded_substream = substr;
-    } else
-#endif
-    if ((s->ch_layout & m->avctx->request_channel_layout) ==
+    if (m->avctx->request_channel_layout && (s->mask & m->avctx->request_channel_layout) ==
         m->avctx->request_channel_layout && m->max_decoded_substream > substr) {
         av_log(m->avctx, AV_LOG_DEBUG,
                "Extracting %d-channel downmix (0x%"PRIx64") from substream %d. "
                "Further substreams will be skipped.\n",
-               s->max_channel + 1, s->ch_layout, substr);
+               s->max_channel + 1, s->mask, substr);
         m->max_decoded_substream = substr;
     }
 
@@ -548,9 +537,9 @@ static int read_restart_header(MLPDecodeContext *m, GetBitContext *gbp,
     for (ch = 0; ch <= s->max_matrix_channel; ch++) {
         int ch_assign = get_bits(gbp, 6);
         if (m->avctx->codec_id == AV_CODEC_ID_TRUEHD) {
-            uint64_t channel = thd_channel_layout_extract_channel(s->ch_layout,
+            uint64_t channel = thd_channel_layout_extract_channel(s->mask,
                                                                   ch_assign);
-            ch_assign = av_get_channel_layout_channel_index(s->ch_layout,
+            ch_assign = av_get_channel_layout_channel_index(s->mask,
                                                             channel);
         }
         if ((unsigned)ch_assign > s->max_matrix_channel) {
@@ -592,7 +581,7 @@ static int read_restart_header(MLPDecodeContext *m, GetBitContext *gbp,
 
     if (substr == m->max_decoded_substream) {
         m->avctx->channels       = s->max_matrix_channel + 1;
-        m->avctx->channel_layout = s->ch_layout;
+        m->avctx->channel_layout = s->mask;
 
         if (m->avctx->codec_id == AV_CODEC_ID_MLP && m->needs_reordering) {
             if (m->avctx->channel_layout == (AV_CH_LAYOUT_QUAD|AV_CH_LOW_FREQUENCY) ||

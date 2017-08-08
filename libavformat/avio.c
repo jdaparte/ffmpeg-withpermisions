@@ -371,6 +371,21 @@ int url_ctl(URLContext *h, int cmd, void *arg)
 	ret = h->prot->url_ctl(h, cmd, arg);
 	return ret;
 }
+
+int av_ctl(struct AVFormatContext *h, int cmd, void *arg)
+{
+    int ret;
+
+    if (!h)
+	    return AVERROR(EINVAL);
+	if (!h->iformat)
+		return url_ctl(url_fileno(h->pb), cmd, arg);
+	if (!h->iformat->av_ctl)
+		return url_ctl(url_fileno(h->pb), cmd, arg);
+
+	ret = h->iformat->av_ctl(h, cmd, arg);
+	return ret;
+}
  
 int avio_check(const char *url, int flags)
 {

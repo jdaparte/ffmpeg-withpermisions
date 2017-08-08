@@ -575,6 +575,11 @@ typedef struct AVInputFormat {
      * Active streams are all streams that have AVStream.discard < AVDISCARD_ALL.
      */
     int (*read_seek2)(struct AVFormatContext *s, int stream_index, int64_t min_ts, int64_t ts, int64_t max_ts, int flags);
+
+	/**
+     * AVInputFormat handler to get data from MSS
+     */
+    int (*av_ctl)(struct AVFormatContext *s, int cmd, void *arg);
 } AVInputFormat;
 /**
  * @}
@@ -2147,6 +2152,10 @@ int avformat_match_stream_specifier(AVFormatContext *s, AVStream *st,
 
 void avformat_queue_attached_pictures(AVFormatContext *s);
 
+/**
+ * Function is used to get data from MSS
+ */
+int av_ctl(struct AVFormatContext *h, int cmd, void *arg);
 
 /**
  * @}

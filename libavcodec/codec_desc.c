@@ -2532,6 +2532,12 @@ static const AVCodecDescriptor codec_descriptors[] = {
         .name      = "klv",
         .long_name = NULL_IF_CONFIG_SMALL("SMPTE 336M Key-Length-Value (KLV) metadata"),
     },
+    {
+    	.id	   = AV_CODEC_ID_CC,
+	.type      = AVMEDIA_TYPE_SUBTITLE,
+	.name      = "cc",
+	.long_name = NULL_IF_CONFIG_SMALL("Closed Captions"),
+    },
 
 };
 

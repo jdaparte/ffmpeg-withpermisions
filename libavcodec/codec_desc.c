@@ -2538,6 +2538,12 @@ static const AVCodecDescriptor codec_descriptors[] = {
 	.name      = "cc",
 	.long_name = NULL_IF_CONFIG_SMALL("Closed Captions"),
     },
+    {
+    	.id	   = AV_CODEC_ID_TTML,
+	.type      = AVMEDIA_TYPE_SUBTITLE,
+	.name      = "ttml",
+	.long_name = NULL_IF_CONFIG_SMALL("TTML Subtitles"),
+    },
 
 };
 

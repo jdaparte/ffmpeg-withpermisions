@@ -241,6 +241,7 @@ typedef struct DVBSubContext {
     int display_list_size;
     DVBSubRegionDisplay *display_list;
     DVBSubDisplayDefinition *display_definition;
+    unsigned got_segment;
 } DVBSubContext;
 
 
@@ -454,6 +455,8 @@ static av_cold int dvbsub_close_decoder(AVCodecContext *avctx)
     delete_objects(ctx);
 
     delete_cluts(ctx);
+
+    ctx->got_segment = 0;
 
     av_freep(&ctx->display_definition);
 
@@ -1466,7 +1469,6 @@ static int dvbsub_decode(AVCodecContext *avctx,
     int page_id;
     int segment_length;
     int i;
-    int got_segment = 0;
 
     av_dlog(avctx, "DVB sub packet:\n");
 
@@ -1505,26 +1507,26 @@ static int dvbsub_decode(AVCodecContext *avctx,
             switch (segment_type) {
             case DVBSUB_PAGE_SEGMENT:
                 dvbsub_parse_page_segment(avctx, p, segment_length);
-                got_segment |= 1;
+                ctx->got_segment |= 1;
                 break;
             case DVBSUB_REGION_SEGMENT:
                 dvbsub_parse_region_segment(avctx, p, segment_length);
-                got_segment |= 2;
+                ctx->got_segment |= 2;
                 break;
             case DVBSUB_CLUT_SEGMENT:
                 dvbsub_parse_clut_segment(avctx, p, segment_length);
-                got_segment |= 4;
+                ctx->got_segment |= 4;
                 break;
             case DVBSUB_OBJECT_SEGMENT:
                 dvbsub_parse_object_segment(avctx, p, segment_length);
-                got_segment |= 8;
+                ctx->got_segment |= 8;
                 break;
             case DVBSUB_DISPLAYDEFINITION_SEGMENT:
                 dvbsub_parse_display_definition_segment(avctx, p, segment_length);
                 break;
             case DVBSUB_DISPLAY_SEGMENT:
                 *data_size = dvbsub_display_end_segment(avctx, p, segment_length, sub);
-                got_segment |= 16;
+                ctx->got_segment |= 16;
                 break;
             default:
                 av_dlog(avctx, "Subtitling segment type 0x%x, page id %d, length %d\n",
@@ -1537,8 +1539,10 @@ static int dvbsub_decode(AVCodecContext *avctx,
     }
     // Some streams do not send a display segment but if we have all the other
     // segments then we need no further data.
-    if (got_segment == 15 && sub)
+    if (ctx->got_segment == 15 && sub) {
         *data_size = dvbsub_display_end_segment(avctx, p, 0, sub);
+        ctx->got_segment &= 7; // unset DVBSUB_OBJECT_SEGMENT and keep others
+    }
 
     return p - buf;
 }

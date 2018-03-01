@@ -48,6 +48,8 @@
 #include <zlib.h>
 #endif
 
+#include <arpa/inet.h>
+
 /*
  * First version by Francois Revol revol@free.fr
  * Seek function by Gael Chardon gael.dev@4now.net
@@ -2776,6 +2778,142 @@ static int mov_read_tmcd(MOVContext *c, AVIOContext *pb, MOVAtom atom)
     return 0;
 }
 
+static int mov_read_uuid(MOVContext *c, AVIOContext *pb, MOVAtom atom)
+{
+	AVStream *st;
+	MOVStreamContext *sc;
+	int64_t ret;
+	uint8_t uuid[16];
+	int i;
+
+	static const uint8_t uuid_playready_aes_data[] = {
+		0xa2, 0x39, 0x4f, 0x52, 0x5a, 0x9b, 0x4f, 0x14,
+		0xa2, 0x44, 0x6c, 0x42, 0x7c, 0x64, 0x8d, 0xf4
+	};
+
+
+	if (atom.size < sizeof(uuid) || atom.size >= FFMIN(INT_MAX, SIZE_MAX))
+		return AVERROR_INVALIDDATA;
+
+	if (c->fc->nb_streams < 1)
+		return 0;
+	st = c->fc->streams[c->fc->nb_streams - 1];
+	sc = st->priv_data;
+
+	ret = avio_read(pb, uuid, sizeof(uuid));
+	if (ret < 0) {
+		return ret;
+	} else if (ret != sizeof(uuid)) {
+		return AVERROR_INVALIDDATA;
+	}
+
+	if (!memcmp(uuid, uuid_playready_aes_data, sizeof(uuid))){
+		uint32_t header = 0;
+		uint32_t sample_count = 0;
+		uint16_t numClear[10];
+		uint16_t numClear_aux;
+		uint32_t numEnc[10];
+		uint32_t numEnc_aux;
+		uint8_t  iv[8];
+		char     auxKey[256];
+		char     auxValue[512];
+		int k;
+
+		ret = avio_read(pb, &header, sizeof(header));
+		if (ret < 0) {
+			return ret;
+		} else if (ret != sizeof(header)) {
+			return AVERROR_INVALIDDATA;
+		}
+
+		ret = avio_read(pb, &sample_count, sizeof(sample_count));
+		if (ret < 0) {
+			return ret;
+		} else if (ret != sizeof(sample_count)) {
+			return AVERROR_INVALIDDATA;
+		}
+
+		header = ntohl(header);
+		sample_count = ntohl(sample_count);
+
+		// Lets iterate over it and attach as metadata to stream
+		for (i=0; i<sample_count; i++){
+			ret = avio_read(pb, &iv, sizeof(iv));
+			if (ret < 0) {
+				return ret;
+			} else if (ret != sizeof(iv)) {
+				return AVERROR_INVALIDDATA;
+			}
+
+			// We will support up to 10 segments if sub-sample encryption is used
+			for (k = 0; k < 10; k++) {
+				numClear[k]	= 0;
+				numEnc[k] 	= 0;
+			}
+
+			if (header & 0x000002){
+				uint16_t nbOfEntries = 0;
+				int j;
+
+				ret = avio_read(pb, &nbOfEntries, sizeof(nbOfEntries));
+				if (ret < 0) {
+					return ret;
+				} else if (ret != sizeof(nbOfEntries)) {
+					return AVERROR_INVALIDDATA;
+				}
+				nbOfEntries = ntohs(nbOfEntries);
+
+				if (nbOfEntries > 10){
+					av_log(c, AV_LOG_WARNING, "PlayReady: Unsupported number of entries: %d\n", nbOfEntries);
+				}
+
+				for (j=0; j< nbOfEntries; j++){
+					ret = avio_read(pb, &numClear_aux, sizeof(numClear_aux));
+					if (ret < 0) {
+						return ret;
+					} else if (ret != sizeof(numClear_aux)) {
+						return AVERROR_INVALIDDATA;
+					}
+					if (j < 10)
+						numClear[j] = ntohs(numClear_aux);
+
+					ret = avio_read(pb, &numEnc_aux, sizeof(numEnc_aux));
+					if (ret < 0) {
+						return ret;
+					} else if (ret != sizeof(numEnc_aux)) {
+						return AVERROR_INVALIDDATA;
+					}
+					if (j < 10)
+						numEnc[j] = ntohl(numEnc_aux);
+
+				}
+			}
+
+			// Format to store it in dictionary
+			memset(auxKey, 0, sizeof(auxKey));
+			memset(auxValue, 0, sizeof(auxValue));
+			sprintf(auxKey, "prdyaes_%d", i);
+			sprintf(auxValue, "%x|%x|%x|%x|%x|%x|%x|%x|%x|%x|%x|%x|%x|%x|%x|%x|%x|%x|%x|%x|%x|%x|%x|%x|%x|%x|%x|%x",
+				iv[0], iv[1], iv[2], iv[3], iv[4], iv[5], iv[6], iv[7],
+				numClear[0], numEnc[0], numClear[1], numEnc[1], numClear[2], numEnc[2],
+				numClear[3], numEnc[3], numClear[4], numEnc[4], numClear[5], numEnc[5],
+				numClear[6], numEnc[6], numClear[7], numEnc[7], numClear[8], numEnc[8],
+				numClear[9], numEnc[9]);
+			av_dict_set(&c->fc->metadata, auxKey, auxValue, 0);
+		}
+
+		// Store the number of samples and clear the usage counter
+		memset(auxValue, 0, sizeof(auxValue));
+		sprintf(auxValue, "%d", sample_count);
+		av_dict_set(&c->fc->metadata, "prdy_cnt", auxValue, 0); // This is the total amount of entries 
+		av_dict_set(&c->fc->metadata, "prdy_use", "0", 0);  // As consumer reads these keys, it update this entry
+
+	}
+
+	return 0;
+}
+
+
 static const MOVParseTableEntry mov_default_parse_table[] = {
 { MKTAG('A','C','L','R'), mov_read_avid },
 { MKTAG('A','P','R','G'), mov_read_avid },
@@ -2840,6 +2978,7 @@ static const MOVParseTableEntry mov_default_parse_table[] = {
 { MKTAG('d','v','c','1'), mov_read_dvc1 },
 { MKTAG('s','b','g','p'), mov_read_sbgp },
 { MKTAG('h','v','c','C'), mov_read_glbl },
+{ MKTAG('u','u','i','d'), mov_read_uuid },
 { 0, NULL }
 };
 

@@ -3519,6 +3519,7 @@ typedef struct AVSubtitle {
     unsigned num_rects;
     AVSubtitleRect **rects;
     int64_t pts;    ///< Same as packet pts, in AV_TIME_BASE
+    uint8_t *arib_txt;
 } AVSubtitle;
 
 /**

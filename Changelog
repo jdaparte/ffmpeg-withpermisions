@@ -1,5 +1,10 @@
+9999 -- 08/03/2018
+- dvbsub_decode: if the display segment is missing, the other segments can still be spread across multiple AVPacket(s)
+
 3.1.0.15 -- 03/07/2017
 - Add a codec AV_CODEC_ID_CC for closed captioning
+
+==========
 
 Entries are sorted chronologically from oldest to youngest within each release,
 releases are sorted from youngest to oldest.

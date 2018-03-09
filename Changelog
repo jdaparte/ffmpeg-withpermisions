@@ -1,3 +1,11 @@
+9999 -- 09/03/2018
+FFMPEG contribution from Telefoncia:
+- Support smooth streaming
+- Support playready
+- Support closed caption
+- Support ttml
+- Memory leak fix
+
 3.1.0.16 -- 08/03/2018
 - dvbsub_decode: if the display segment is missing, the other segments can still be spread across multiple AVPacket(s)
 

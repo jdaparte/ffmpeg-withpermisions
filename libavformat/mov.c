@@ -3459,9 +3459,11 @@ static int mov_read_packet(AVFormatContext *s, AVPacket *pkt)
     sample = mov_find_next_sample(s, &st);
     if (!sample) {
         mov->found_mdat = 0;
-        if (!mov->next_root_atom)
+        if (!(mov->flags & MOV_FLAG_HLS) &&
+            !mov->next_root_atom)
             return AVERROR_EOF;
-        avio_seek(s->pb, mov->next_root_atom, SEEK_SET);
+        if (mov->next_root_atom)
+            avio_seek(s->pb, mov->next_root_atom, SEEK_SET);
         mov->next_root_atom = 0;
         if (mov_read_default(mov, s->pb, (MOVAtom){ AV_RL32("root"), INT64_MAX }) < 0 ||
             url_feof(s->pb))
@@ -3602,6 +3604,10 @@ static const AVOption options[] = {
     {"smooth",
         "Understand boxes from the smooth streaming fragments", 0,
         AV_OPT_TYPE_CONST, {.i64 = MOV_FLAG_MSS}, INT_MIN, INT_MAX,
+        AV_OPT_FLAG_ENCODING_PARAM, "movdflags"},
+    {"hls",
+        "Try to read additional concatened root atoms instead of reporting EOF in read_packet", 0,
+        AV_OPT_TYPE_CONST, {.i64 = MOV_FLAG_HLS}, INT_MIN, INT_MAX,
         AV_OPT_FLAG_ENCODING_PARAM, "movdflags"},
     {"use_absolute_path",
         "allow using absolute path when opening alias, this is a possible security issue",

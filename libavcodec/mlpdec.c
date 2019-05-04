@@ -33,7 +33,7 @@
 #include "internal.h"
 #include "libavutil/crc.h"
 #include "parser.h"
-#include "mlp_parser.h"
+#include "mlp_parse.h"
 #include "mlpdsp.h"
 #include "mlp.h"
 

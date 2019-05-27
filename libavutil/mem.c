@@ -176,6 +176,27 @@ void *av_realloc_f(void *ptr, size_t nelem, size_t elsize)
     return r;
 }
 
+int av_reallocp(void *ptr, size_t size)
+{
+    void *val;
+
+    if (!size) {
+        av_freep(ptr);
+        return 0;
+    }
+
+    memcpy(&val, ptr, sizeof(val));
+    val = av_realloc(val, size);
+
+    if (!val) {
+        av_freep(ptr);
+        return AVERROR(ENOMEM);
+    }
+
+    memcpy(ptr, &val, sizeof(val));
+    return 0;
+}
+
 void av_free(void *ptr)
 {
 #if CONFIG_MEMALIGN_HACK

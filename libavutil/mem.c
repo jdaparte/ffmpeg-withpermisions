@@ -197,6 +197,13 @@ int av_reallocp(void *ptr, size_t size)
     return 0;
 }
 
+void *av_realloc_array(void *ptr, size_t nmemb, size_t size)
+{
+    if (!size || nmemb >= INT_MAX / size)
+        return NULL;
+    return av_realloc(ptr, nmemb * size);
+}
+
 void av_free(void *ptr)
 {
 #if CONFIG_MEMALIGN_HACK

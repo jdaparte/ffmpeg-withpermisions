@@ -144,6 +144,26 @@ int av_reallocp(void *ptr, size_t size);
 void *av_realloc_f(void *ptr, size_t nelem, size_t elsize);
 
 /**
+ * Allocate, reallocate, or free an array.
+ *
+ * If `ptr` is `NULL` and `nmemb` > 0, allocate a new block. If
+ * `nmemb` is zero, free the memory block pointed to by `ptr`.
+ *
+ * @param ptr   Pointer to a memory block already allocated with
+ *              av_realloc() or `NULL`
+ * @param nmemb Number of elements in the array
+ * @param size  Size of the single element of the array
+ *
+ * @return Pointer to a newly-reallocated block or NULL if the block
+ *         cannot be reallocated or the function is used to free the memory block
+ *
+ * @warning Unlike av_malloc(), the allocated memory is not guaranteed to be
+ *          correctly aligned.
+ * @see av_reallocp_array()
+ */
+av_alloc_size(2, 3) void *av_realloc_array(void *ptr, size_t nmemb, size_t size);
+
+/**
  * Free a memory block which has been allocated with av_malloc(z)() or
  * av_realloc().
  * @param ptr Pointer to the memory block which should be freed.

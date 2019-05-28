@@ -162,4 +162,14 @@
 #   define ONLY_IF_THREADS_ENABLED(x) NULL
 #endif
 
+/**
+ * Set a dictionary value to an ISO-8601 compliant timestamp string.
+ *
+ * @param s AVFormatContext
+ * @param key metadata key
+ * @param timestamp unix timestamp in microseconds
+ * @return <0 on error
+ */
+int avpriv_dict_set_timestamp(AVDictionary **dict, const char *key, int64_t timestamp);
+
 #endif /* AVUTIL_INTERNAL_H */

@@ -918,6 +918,13 @@ typedef struct AVStream {
      */
     int pts_wrap_behavior;
 
+    /**
+     * display aspect ratio (0 if unknown)
+     * - encoding: unused
+     * - decoding: Set by libavformat to calculate sample_aspect_ratio internally
+     */
+    AVRational display_aspect_ratio;
+
 } AVStream;
 
 #define AV_PROGRAM_RUNNING 1

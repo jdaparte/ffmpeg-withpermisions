@@ -430,4 +430,6 @@ int ff_get_extradata(AVFormatContext *s, AVCodecContext *par, AVIOContext *pb, i
  */
 int ff_rfps_add_frame(AVFormatContext *ic, AVStream *st, int64_t dts);
 
+void ff_rfps_calculate(AVFormatContext *ic);
+
 #endif /* AVFORMAT_INTERNAL_H */

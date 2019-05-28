@@ -76,6 +76,7 @@ static int read_number(const AVOption *o, void *dst, double *num, int *den, int6
     case AV_OPT_TYPE_FLAGS:     *intnum = *(unsigned int*)dst;return 0;
     case AV_OPT_TYPE_PIXEL_FMT:
     case AV_OPT_TYPE_SAMPLE_FMT:
+    case AV_OPT_TYPE_BOOL:
     case AV_OPT_TYPE_INT:       *intnum = *(int         *)dst;return 0;
     case AV_OPT_TYPE_INT64:     *intnum = *(int64_t     *)dst;return 0;
     case AV_OPT_TYPE_FLOAT:     *num    = *(float       *)dst;return 0;
@@ -100,6 +101,7 @@ static int write_number(void *obj, const AVOption *o, void *dst, double num, int
     case AV_OPT_TYPE_FLAGS:
     case AV_OPT_TYPE_PIXEL_FMT:
     case AV_OPT_TYPE_SAMPLE_FMT:
+    case AV_OPT_TYPE_BOOL:
     case AV_OPT_TYPE_INT:   *(int       *)dst= llrint(num/den)*intnum; break;
     case AV_OPT_TYPE_INT64: *(int64_t   *)dst= llrint(num/den)*intnum; break;
     case AV_OPT_TYPE_FLOAT: *(float     *)dst= num*intnum/den;         break;
@@ -237,6 +239,44 @@ static int set_string_number(void *obj, const AVOption *o, const char *val, void
     return 0;
 }
 
+static const char *get_bool_name(int val)
+{
+    if (val < 0)
+        return "auto";
+    return val ? "true" : "false";
+}
+
+static int set_string_bool(void *obj, const AVOption *o, const char *val, int *dst)
+{
+    int n;
+
+    if (!val)
+        return 0;
+
+    if (!strcmp(val, "auto")) {
+        n = -1;
+    } else if (av_match_name(val, "true,y,yes,enable,enabled,on")) {
+        n = 1;
+    } else if (av_match_name(val, "false,n,no,disable,disabled,off")) {
+        n = 0;
+    } else {
+        char *end = NULL;
+        n = strtol(val, &end, 10);
+        if (val + strlen(val) != end)
+            goto fail;
+    }
+
+    if (n < o->min || n > o->max)
+        goto fail;
+
+    *dst = n;
+    return 0;
+
+fail:
+    av_log(obj, AV_LOG_ERROR, "Unable to parse option value \"%s\" as boolean\n", val);
+    return AVERROR(EINVAL);
+}
+
 #if FF_API_OLD_AVOPTIONS
 int av_set_string3(void *obj, const char *name, const char *val, int alloc, const AVOption **o_out)
 {
@@ -263,6 +303,7 @@ int av_opt_set(void *obj, const char *name, const char *val, int search_flags)
     switch (o->type) {
     case AV_OPT_TYPE_STRING:   return set_string(obj, o, val, dst);
     case AV_OPT_TYPE_BINARY:   return set_string_binary(obj, o, val, dst);
+    case AV_OPT_TYPE_BOOL:     return set_string_bool(obj, o, val, dst);
     case AV_OPT_TYPE_FLAGS:
     case AV_OPT_TYPE_INT:
     case AV_OPT_TYPE_INT64:
@@ -539,6 +580,7 @@ int av_opt_get(void *obj, const char *name, int search_flags, uint8_t **out_val)
     buf[0] = 0;
     switch (o->type) {
     case AV_OPT_TYPE_FLAGS:     ret = snprintf(buf, sizeof(buf), "0x%08X",  *(int    *)dst);break;
+    case AV_OPT_TYPE_BOOL:      ret = snprintf(buf, sizeof(buf), "%s", (char *)av_x_if_null(get_bool_name(*(int *)dst), "invalid"));
     case AV_OPT_TYPE_INT:       ret = snprintf(buf, sizeof(buf), "%d" ,     *(int    *)dst);break;
     case AV_OPT_TYPE_INT64:     ret = snprintf(buf, sizeof(buf), "%"PRId64, *(int64_t*)dst);break;
     case AV_OPT_TYPE_FLOAT:     ret = snprintf(buf, sizeof(buf), "%f" ,     *(float  *)dst);break;
@@ -815,6 +857,9 @@ static void opt_list(void *obj, void *av_log_obj, const char *unit,
             case AV_OPT_TYPE_SAMPLE_FMT:
                 av_log(av_log_obj, AV_LOG_INFO, "%-12s ", "<sample_fmt>");
                 break;
+            case AV_OPT_TYPE_BOOL:
+                av_log(av_log_obj, AV_LOG_INFO, "%-12s ", "<boolean>");
+                break;
             case AV_OPT_TYPE_CONST:
             default:
                 av_log(av_log_obj, AV_LOG_INFO, "%-12s ", "");
@@ -888,6 +933,7 @@ void av_opt_set_defaults2(void *s, int mask, int flags)
             case AV_OPT_TYPE_CONST:
                 /* Nothing to be done here */
             break;
+            case AV_OPT_TYPE_BOOL:
             case AV_OPT_TYPE_FLAGS:
             case AV_OPT_TYPE_INT:
             case AV_OPT_TYPE_INT64:
@@ -1247,6 +1293,7 @@ int av_opt_query_ranges_default(AVOptionRanges **ranges_arg, void *obj, const ch
     range->value_max = field->max;
 
     switch (field->type) {
+    case AV_OPT_TYPE_BOOL:
     case AV_OPT_TYPE_INT:
     case AV_OPT_TYPE_INT64:
     case AV_OPT_TYPE_PIXEL_FMT:

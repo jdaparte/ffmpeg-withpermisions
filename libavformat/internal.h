@@ -402,4 +402,24 @@ int ff_generate_avci_extradata(AVStream *st);
 
 int ff_http_match_no_proxy(const char *no_proxy, const char *hostname);
 
+/**
+ * Allocate extradata with additional AV_INPUT_BUFFER_PADDING_SIZE at end
+ * which is always set to 0.
+ *
+ * Previously allocated extradata in par will be freed.
+ *
+ * @param size size of extradata
+ * @return 0 if OK, AVERROR_xxx on error
+ */
+int ff_alloc_extradata(AVCodecContext *par, int size);
+
+/**
+ * Allocate extradata with additional AV_INPUT_BUFFER_PADDING_SIZE at end
+ * which is always set to 0 and fill it from pb.
+ *
+ * @param size size of extradata
+ * @return >= 0 if OK, AVERROR_xxx on error
+ */
+int ff_get_extradata(AVFormatContext *s, AVCodecContext *par, AVIOContext *pb, int size);
+
 #endif /* AVFORMAT_INTERNAL_H */

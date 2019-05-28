@@ -4603,12 +4603,9 @@ int ff_generate_avci_extradata(AVStream *st)
         return 0;
 
     av_freep(&st->codec->extradata);
-    st->codec->extradata_size = 0;
-    st->codec->extradata = av_mallocz(size + FF_INPUT_BUFFER_PADDING_SIZE);
-    if (!st->codec->extradata)
+    if (ff_alloc_extradata(st->codec, size))
         return AVERROR(ENOMEM);
     memcpy(st->codec->extradata, data, size);
-    st->codec->extradata_size = size;
 
     return 0;
 }
@@ -4733,5 +4730,39 @@ int ff_http_match_no_proxy(const char *no_proxy, const char *hostname)
         start = next;
     }
     av_free(buf);
+    return ret;
+}
+
+int ff_alloc_extradata(AVCodecContext *par, int size)
+{
+    av_freep(&par->extradata);
+    par->extradata_size = 0;
+
+    if (size < 0 || size >= INT32_MAX - AV_INPUT_BUFFER_PADDING_SIZE)
+        return AVERROR(EINVAL);
+
+    par->extradata = av_malloc(size + AV_INPUT_BUFFER_PADDING_SIZE);
+    if (!par->extradata)
+        return AVERROR(ENOMEM);
+
+    memset(par->extradata + size, 0, AV_INPUT_BUFFER_PADDING_SIZE);
+    par->extradata_size = size;
+
+    return 0;
+}
+
+int ff_get_extradata(AVFormatContext *s, AVCodecContext *par, AVIOContext *pb, int size)
+{
+    int ret = ff_alloc_extradata(par, size);
+    if (ret < 0)
+        return ret;
+    ret = avio_read(pb, par->extradata, size);
+    if (ret != size) {
+        av_freep(&par->extradata);
+        par->extradata_size = 0;
+        av_log(s, AV_LOG_ERROR, "Failed to read extradata of size %d\n", size);
+        return ret < 0 ? ret : AVERROR_INVALIDDATA;
+    }
+
     return ret;
 }

@@ -50,8 +50,6 @@
 #define ROUNDED_DIV(a,b) (((a)>0 ? (a) + ((b)>>1) : (a) - ((b)>>1))/(b))
 #define FFUDIV(a,b) (((a)>0 ?(a):(a)-(b)+1) / (b))
 #define FFUMOD(a,b) ((a)-(b)*FFUDIV(a,b))
-#define FFABS(a) ((a) >= 0 ? (a) : (-(a)))
-#define FFSIGN(a) ((a) > 0 ? 1 : -1)
 
 #define FFMAX(a,b) ((a) > (b) ? (a) : (b))
 #define FFMAX3(a,b,c) FFMAX(FFMAX(a,b),c)
@@ -61,6 +59,23 @@
 #define FFSWAP(type,a,b) do{type SWAP_tmp= b; b= a; a= SWAP_tmp;}while(0)
 #define FF_ARRAY_ELEMS(a) (sizeof(a) / sizeof((a)[0]))
 #define FFALIGN(x, a) (((x)+(a)-1)&~((a)-1))
+
+/**
+ * Absolute value, Note, INT_MIN / INT64_MIN result in undefined behavior as they
+ * are not representable as absolute values of their type. This is the same
+ * as with *abs()
+ * @see FFNABS()
+ */
+#define FFABS(a) ((a) >= 0 ? (a) : (-(a)))
+#define FFSIGN(a) ((a) > 0 ? 1 : -1)
+
+/**
+ * Negative Absolute value.
+ * this works for all integers of all types.
+ * As with many macros, this evaluates its argument twice, it thus must not have
+ * a sideeffect, that is FFNABS(x++) has undefined behavior.
+ */
+#define FFNABS(a) ((a) <= 0 ? (a) : (-(a)))
 
 /* misc math functions */
 

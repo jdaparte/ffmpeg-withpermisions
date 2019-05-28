@@ -292,6 +292,13 @@ enum AVCodecID {
     AV_CODEC_ID_MVC2       = MKBETAG('M','V','C','2'),
     AV_CODEC_ID_HEVC       = MKBETAG('H','2','6','5'),
 #define AV_CODEC_ID_H265 AV_CODEC_ID_HEVC
+    AV_CODEC_ID_AV1,
+    AV_CODEC_ID_HAP,
+    AV_CODEC_ID_DXV,
+    AV_CODEC_ID_MAGICYUV,
+    AV_CODEC_ID_SHEERVIDEO,
+    AV_CODEC_ID_PIXLET,
+    AV_CODEC_ID_AIC,
 
     /* various PCM "codecs" */
     AV_CODEC_ID_FIRST_AUDIO = 0x10000,     ///< A dummy id pointing at the start of audio codecs
@@ -487,6 +494,7 @@ enum AVCodecID {
     AV_CODEC_ID_IDF        = MKBETAG( 0 ,'I','D','F'),
     AV_CODEC_ID_OTF        = MKBETAG( 0 ,'O','T','F'),
     AV_CODEC_ID_SMPTE_KLV  = MKBETAG('K','L','V','A'),
+    AV_CODEC_ID_BIN_DATA,
 
     AV_CODEC_ID_PROBE = 0x19000, ///< codec_id is not known (like AV_CODEC_ID_NONE) but lavf should attempt to identify it
 

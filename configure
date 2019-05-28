@@ -1419,6 +1419,7 @@ HAVE_LIST="
     getservbyport
     gettimeofday
     glob
+    gmtime_r
     gnu_as
     gsm_h
     ibm_asm
@@ -3783,6 +3784,7 @@ check_func  gettimeofday
 check_func  inet_aton $network_extralibs
 check_func  isatty
 check_func  localtime_r
+check_func  gmtime_r
 check_func  ${malloc_prefix}memalign            && enable memalign
 check_func  mkstemp
 check_func  mmap

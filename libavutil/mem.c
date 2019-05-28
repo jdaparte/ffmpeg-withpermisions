@@ -204,6 +204,19 @@ void *av_realloc_array(void *ptr, size_t nmemb, size_t size)
     return av_realloc(ptr, nmemb * size);
 }
 
+int av_reallocp_array(void *ptr, size_t nmemb, size_t size)
+{
+    void *val;
+
+    memcpy(&val, ptr, sizeof(val));
+    val = av_realloc_f(val, nmemb, size);
+    memcpy(ptr, &val, sizeof(val));
+    if (!val && nmemb && size)
+        return AVERROR(ENOMEM);
+
+    return 0;
+}
+
 void av_free(void *ptr)
 {
 #if CONFIG_MEMALIGN_HACK

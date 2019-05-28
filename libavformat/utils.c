@@ -4515,7 +4515,7 @@ int avformat_match_stream_specifier(AVFormatContext *s, AVStream *st,
     return AVERROR(EINVAL);
 }
 
-void ff_generate_avci_extradata(AVStream *st)
+int ff_generate_avci_extradata(AVStream *st)
 {
     static const uint8_t avci100_1080p_extradata[] = {
         // SPS
@@ -4600,14 +4600,17 @@ void ff_generate_avci_extradata(AVStream *st)
         size = sizeof(avci100_720p_extradata);
     }
     if (!size)
-        return;
+        return 0;
+
     av_freep(&st->codec->extradata);
     st->codec->extradata_size = 0;
     st->codec->extradata = av_mallocz(size + FF_INPUT_BUFFER_PADDING_SIZE);
     if (!st->codec->extradata)
-        return;
+        return AVERROR(ENOMEM);
     memcpy(st->codec->extradata, data, size);
     st->codec->extradata_size = size;
+
+    return 0;
 }
 
 uint8_t *av_stream_get_side_data(const AVStream *st,

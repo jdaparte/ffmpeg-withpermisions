@@ -1662,6 +1662,69 @@ const AVPixFmtDescriptor av_pix_fmt_descriptors[AV_PIX_FMT_NB] = {
     },
 };
 
+static const char * const color_range_names[] = {
+    [AVCOL_RANGE_UNSPECIFIED] = "unknown",
+    [AVCOL_RANGE_MPEG] = "tv",
+    [AVCOL_RANGE_JPEG] = "pc",
+};
+
+static const char * const color_primaries_names[AVCOL_PRI_NB] = {
+    [AVCOL_PRI_RESERVED0] = "reserved",
+    [AVCOL_PRI_BT709] = "bt709",
+    [AVCOL_PRI_UNSPECIFIED] = "unknown",
+    [AVCOL_PRI_RESERVED] = "reserved",
+    [AVCOL_PRI_BT470M] = "bt470m",
+    [AVCOL_PRI_BT470BG] = "bt470bg",
+    [AVCOL_PRI_SMPTE170M] = "smpte170m",
+    [AVCOL_PRI_SMPTE240M] = "smpte240m",
+    [AVCOL_PRI_FILM] = "film",
+    [AVCOL_PRI_BT2020] = "bt2020",
+    [AVCOL_PRI_SMPTE428] = "smpte428",
+    [AVCOL_PRI_SMPTE431] = "smpte431",
+    [AVCOL_PRI_SMPTE432] = "smpte432",
+    [AVCOL_PRI_JEDEC_P22] = "jedec-p22",
+};
+
+static const char * const color_transfer_names[] = {
+    [AVCOL_TRC_RESERVED0] = "reserved",
+    [AVCOL_TRC_BT709] = "bt709",
+    [AVCOL_TRC_UNSPECIFIED] = "unknown",
+    [AVCOL_TRC_RESERVED] = "reserved",
+    [AVCOL_TRC_GAMMA22] = "bt470m",
+    [AVCOL_TRC_GAMMA28] = "bt470bg",
+    [AVCOL_TRC_SMPTE170M] = "smpte170m",
+    [AVCOL_TRC_SMPTE240M] = "smpte240m",
+    [AVCOL_TRC_LINEAR] = "linear",
+    [AVCOL_TRC_LOG] = "log100",
+    [AVCOL_TRC_LOG_SQRT] = "log316",
+    [AVCOL_TRC_IEC61966_2_4] = "iec61966-2-4",
+    [AVCOL_TRC_BT1361_ECG] = "bt1361e",
+    [AVCOL_TRC_IEC61966_2_1] = "iec61966-2-1",
+    [AVCOL_TRC_BT2020_10] = "bt2020-10",
+    [AVCOL_TRC_BT2020_12] = "bt2020-12",
+    [AVCOL_TRC_SMPTE2084] = "smpte2084",
+    [AVCOL_TRC_SMPTE428] = "smpte428",
+    [AVCOL_TRC_ARIB_STD_B67] = "arib-std-b67",
+};
+
+static const char * const color_space_names[] = {
+    [AVCOL_SPC_RGB] = "gbr",
+    [AVCOL_SPC_BT709] = "bt709",
+    [AVCOL_SPC_UNSPECIFIED] = "unknown",
+    [AVCOL_SPC_RESERVED] = "reserved",
+    [AVCOL_SPC_FCC] = "fcc",
+    [AVCOL_SPC_BT470BG] = "bt470bg",
+    [AVCOL_SPC_SMPTE170M] = "smpte170m",
+    [AVCOL_SPC_SMPTE240M] = "smpte240m",
+    [AVCOL_SPC_YCGCO] = "ycgco",
+    [AVCOL_SPC_BT2020_NCL] = "bt2020nc",
+    [AVCOL_SPC_BT2020_CL] = "bt2020c",
+    [AVCOL_SPC_SMPTE2085] = "smpte2085",
+    [AVCOL_SPC_CHROMA_DERIVED_NCL] = "chroma-derived-nc",
+    [AVCOL_SPC_CHROMA_DERIVED_CL] = "chroma-derived-c",
+    [AVCOL_SPC_ICTCP] = "ictcp",
+};
+
 static enum AVPixelFormat get_pix_fmt_internal(const char *name)
 {
     enum AVPixelFormat pix_fmt;
@@ -1791,3 +1854,96 @@ int av_pix_fmt_get_chroma_sub_sample(enum AVPixelFormat pix_fmt,
 
     return 0;
 }
+
+const char *av_color_range_name(enum AVColorRange range)
+{
+    return (unsigned) range < AVCOL_RANGE_NB ?
+        color_range_names[range] : NULL;
+}
+
+int av_color_range_from_name(const char *name)
+{
+    int i;
+
+    for (i = 0; i < FF_ARRAY_ELEMS(color_range_names); i++) {
+        size_t len = strlen(color_range_names[i]);
+        if (!strncmp(color_range_names[i], name, len))
+            return i;
+    }
+
+    return AVERROR(EINVAL);
+}
+
+const char *av_color_primaries_name(enum AVColorPrimaries primaries)
+{
+    return (unsigned) primaries < AVCOL_PRI_NB ?
+        color_primaries_names[primaries] : NULL;
+}
+
+int av_color_primaries_from_name(const char *name)
+{
+    int i;
+
+    for (i = 0; i < FF_ARRAY_ELEMS(color_primaries_names); i++) {
+        size_t len;
+
+        if (!color_primaries_names[i])
+            continue;
+
+        len = strlen(color_primaries_names[i]);
+        if (!strncmp(color_primaries_names[i], name, len))
+            return i;
+    }
+
+    return AVERROR(EINVAL);
+}
+
+const char *av_color_transfer_name(enum AVColorTransferCharacteristic transfer)
+{
+    return (unsigned) transfer < AVCOL_TRC_NB ?
+        color_transfer_names[transfer] : NULL;
+}
+
+int av_color_transfer_from_name(const char *name)
+{
+    int i;
+
+    for (i = 0; i < FF_ARRAY_ELEMS(color_transfer_names); i++) {
+        size_t len;
+
+        if (!color_transfer_names[i])
+            continue;
+
+        len = strlen(color_transfer_names[i]);
+        if (!strncmp(color_transfer_names[i], name, len))
+            return i;
+    }
+
+    return AVERROR(EINVAL);
+}
+
+const char *av_color_space_name(enum AVColorSpace space)
+{
+    return (unsigned) space < AVCOL_SPC_NB ?
+        color_space_names[space] : NULL;
+}
+
+int av_color_space_from_name(const char *name)
+{
+    int i;
+
+    for (i = 0; i < FF_ARRAY_ELEMS(color_space_names); i++) {
+        size_t len;
+
+        if (!color_space_names[i])
+            continue;
+
+        len = strlen(color_space_names[i]);
+        if (!strncmp(color_space_names[i], name, len))
+            return i;
+    }
+
+    return AVERROR(EINVAL);
+}
+
+

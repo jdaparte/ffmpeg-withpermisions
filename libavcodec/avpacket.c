@@ -179,11 +179,41 @@ void av_free_packet(AVPacket *pkt)
         pkt->data            = NULL;
         pkt->size            = 0;
 
-        for (i = 0; i < pkt->side_data_elems; i++)
-            av_free(pkt->side_data[i].data);
-        av_freep(&pkt->side_data);
-        pkt->side_data_elems = 0;
+        ff_packet_free_side_data(pkt);
     }
+}
+
+int av_packet_add_side_data(AVPacket *pkt, enum AVPacketSideDataType type,
+                            uint8_t *data, size_t size)
+{
+    AVPacketSideData *tmp;
+    int i, elems = pkt->side_data_elems;
+
+    for (i = 0; i < elems; i++) {
+        AVPacketSideData *sd = &pkt->side_data[i];
+
+        if (sd->type == type) {
+            av_free(sd->data);
+            sd->data = data;
+            sd->size = size;
+            return 0;
+        }
+    }
+
+    if ((unsigned)elems + 1 > AV_PKT_DATA_NB)
+        return AVERROR(ERANGE);
+
+    tmp = av_realloc(pkt->side_data, (elems + 1) * sizeof(*tmp));
+    if (!tmp)
+        return AVERROR(ENOMEM);
+
+    pkt->side_data = tmp;
+    pkt->side_data[elems].data = data;
+    pkt->side_data[elems].size = size;
+    pkt->side_data[elems].type = type;
+    pkt->side_data_elems++;
+
+    return 0;
 }
 
 uint8_t *av_packet_new_side_data(AVPacket *pkt, enum AVPacketSideDataType type,

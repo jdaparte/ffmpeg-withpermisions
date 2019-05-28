@@ -35,6 +35,7 @@
 #include "id3v2.h"
 #include "libavutil/avassert.h"
 #include "libavutil/avstring.h"
+#include "libavutil/display.h"
 #include "libavutil/mathematics.h"
 #include "libavutil/parseutils.h"
 #include "libavutil/time.h"
@@ -765,9 +766,6 @@ int ff_read_packet(AVFormatContext *s, AVPacket *pkt)
             continue;
         }
 
-        if(!(s->flags & AVFMT_FLAG_KEEP_SIDE_DATA))
-            av_packet_merge_side_data(pkt);
-
         if(pkt->stream_index >= (unsigned)s->nb_streams){
             av_log(s, AV_LOG_ERROR, "Invalid stream index %d\n", pkt->stream_index);
             continue;
@@ -1295,6 +1293,13 @@ static int parse_packet(AVFormatContext *s, AVPacket *pkt, int stream_index)
 
         if (!out_pkt.size)
             continue;
+
+        if (pkt->side_data) {
+            out_pkt.side_data       = pkt->side_data;
+            out_pkt.side_data_elems = pkt->side_data_elems;
+            pkt->side_data          = NULL;
+            pkt->side_data_elems    = 0;
+        }
 
         /* set the duration */
         out_pkt.duration = 0;
@@ -3285,8 +3290,13 @@ int av_read_pause(AVFormatContext *s)
 }
 
 void ff_free_stream(AVFormatContext *s, AVStream *st){
+    int i;
     av_assert0(s->nb_streams>0);
     av_assert0(s->streams[ s->nb_streams-1 ] == st);
+
+    for (i = 0; i < st->nb_side_data; i++)
+        av_freep(&st->side_data[i].data);
+    av_freep(&st->side_data);
 
     if (st->parser) {
         av_parser_close(st->parser);
@@ -3550,6 +3560,116 @@ static void dump_metadata(void *ctx, AVDictionary *m, const char *indent)
     }
 }
 
+static void dump_audioservicetype(void *ctx, AVPacketSideData *sd)
+{
+    enum AVAudioServiceType *ast = (enum AVAudioServiceType *)sd->data;
+
+    if (sd->size < sizeof(*ast)) {
+        av_log(ctx, AV_LOG_INFO, "invalid data");
+        return;
+    }
+
+    switch (*ast) {
+    case AV_AUDIO_SERVICE_TYPE_MAIN:
+        av_log(ctx, AV_LOG_INFO, "main");
+        break;
+    case AV_AUDIO_SERVICE_TYPE_EFFECTS:
+        av_log(ctx, AV_LOG_INFO, "effects");
+        break;
+    case AV_AUDIO_SERVICE_TYPE_VISUALLY_IMPAIRED:
+        av_log(ctx, AV_LOG_INFO, "visually impaired");
+        break;
+    case AV_AUDIO_SERVICE_TYPE_HEARING_IMPAIRED:
+        av_log(ctx, AV_LOG_INFO, "hearing impaired");
+        break;
+    case AV_AUDIO_SERVICE_TYPE_DIALOGUE:
+        av_log(ctx, AV_LOG_INFO, "dialogue");
+        break;
+    case AV_AUDIO_SERVICE_TYPE_COMMENTARY:
+        av_log(ctx, AV_LOG_INFO, "commentary");
+        break;
+    case AV_AUDIO_SERVICE_TYPE_EMERGENCY:
+        av_log(ctx, AV_LOG_INFO, "emergency");
+        break;
+    case AV_AUDIO_SERVICE_TYPE_VOICE_OVER:
+        av_log(ctx, AV_LOG_INFO, "voice over");
+        break;
+    case AV_AUDIO_SERVICE_TYPE_KARAOKE:
+        av_log(ctx, AV_LOG_INFO, "karaoke");
+        break;
+    default:
+        av_log(ctx, AV_LOG_WARNING, "unknown");
+        break;
+    }
+}
+
+static void dump_sidedata(void *ctx, AVStream *st, const char *indent)
+{
+    int i;
+
+    if (st->nb_side_data)
+        av_log(ctx, AV_LOG_INFO, "%sSide data:\n", indent);
+
+    for (i = 0; i < st->nb_side_data; i++) {
+        AVPacketSideData sd = st->side_data[i];
+        av_log(ctx, AV_LOG_INFO, "%s  ", indent);
+
+        switch (sd.type) {
+        case AV_PKT_DATA_PALETTE:
+            av_log(ctx, AV_LOG_INFO, "palette");
+            break;
+        case AV_PKT_DATA_NEW_EXTRADATA:
+            av_log(ctx, AV_LOG_INFO, "new extradata");
+            break;
+        case AV_PKT_DATA_PARAM_CHANGE:
+            av_log(ctx, AV_LOG_INFO, "paramchange ");
+            break;
+        case AV_PKT_DATA_H263_MB_INFO:
+            av_log(ctx, AV_LOG_INFO, "H.263 macroblock info");
+            break;
+        case AV_PKT_DATA_REPLAYGAIN:
+            av_log(ctx, AV_LOG_INFO, "replaygain ");
+            break;
+        case AV_PKT_DATA_DISPLAYMATRIX:
+            av_log(ctx, AV_LOG_INFO, "displaymatrix: rotation of %.2f degrees",
+                   av_display_rotation_get((int32_t *)sd.data));
+            break;
+        case AV_PKT_DATA_STEREO3D:
+            av_log(ctx, AV_LOG_INFO, "stereo3d");
+            break;
+        case AV_PKT_DATA_AUDIO_SERVICE_TYPE:
+            av_log(ctx, AV_LOG_INFO, "audio service type: ");
+            dump_audioservicetype(ctx, &sd);
+            break;
+        case AV_PKT_DATA_QUALITY_STATS:
+            av_log(ctx, AV_LOG_INFO, "quality factor: %"PRId32", pict_type: %c",
+                   AV_RL32(sd.data), av_get_picture_type_char(sd.data[4]));
+            break;
+        case AV_PKT_DATA_CPB_PROPERTIES:
+            av_log(ctx, AV_LOG_INFO, "cpb");
+            break;
+        case AV_PKT_DATA_MASTERING_DISPLAY_METADATA:
+            av_log(ctx, AV_LOG_INFO, "mastering display metadata");
+            break;
+        case AV_PKT_DATA_SPHERICAL:
+            av_log(ctx, AV_LOG_INFO, "spherical");
+            break;
+        case AV_PKT_DATA_CONTENT_LIGHT_LEVEL:
+            av_log(ctx, AV_LOG_INFO, "content light level");
+            break;
+        case AV_PKT_DATA_ENCRYPTION_INIT_INFO:
+            av_log(ctx, AV_LOG_INFO, "Data encryption init info");
+            break;
+        default:
+            av_log(ctx, AV_LOG_INFO,
+                   "unknown side data type %d (%d bytes)", sd.type, sd.size);
+            break;
+        }
+
+        av_log(ctx, AV_LOG_INFO, "\n");
+    }
+}
+
 /* "user interface" functions */
 static void dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
 {
@@ -3613,6 +3733,8 @@ static void dump_stream_format(AVFormatContext *ic, int i, int index, int is_out
         av_log(NULL, AV_LOG_INFO, " (clean effects)");
     av_log(NULL, AV_LOG_INFO, "\n");
     dump_metadata(NULL, st->metadata, "    ");
+
+    dump_sidedata(NULL, st, "    ");
 }
 
 void av_dump_format(AVFormatContext *ic,
@@ -4471,6 +4593,75 @@ void ff_generate_avci_extradata(AVStream *st)
         return;
     memcpy(st->codec->extradata, data, size);
     st->codec->extradata_size = size;
+}
+
+uint8_t *av_stream_get_side_data(const AVStream *st,
+                                 enum AVPacketSideDataType type, int *size)
+{
+    int i;
+
+    for (i = 0; i < st->nb_side_data; i++) {
+        if (st->side_data[i].type == type) {
+            if (size)
+                *size = st->side_data[i].size;
+            return st->side_data[i].data;
+        }
+    }
+    return NULL;
+}
+
+int av_stream_add_side_data(AVStream *st, enum AVPacketSideDataType type,
+                            uint8_t *data, size_t size)
+{
+    AVPacketSideData *sd, *tmp;
+    int i;
+
+    for (i = 0; i < st->nb_side_data; i++) {
+        sd = &st->side_data[i];
+
+        if (sd->type == type) {
+            av_freep(&sd->data);
+            sd->data = data;
+            sd->size = size;
+            return 0;
+        }
+    }
+
+    if ((unsigned)st->nb_side_data + 1 >= INT_MAX / sizeof(*st->side_data))
+        return AVERROR(ERANGE);
+
+    tmp = av_realloc(st->side_data, (st->nb_side_data + 1) * sizeof(*tmp));
+    if (!tmp) {
+        return AVERROR(ENOMEM);
+    }
+
+    st->side_data = tmp;
+    st->nb_side_data++;
+
+    sd = &st->side_data[st->nb_side_data - 1];
+    sd->type = type;
+    sd->data = data;
+    sd->size = size;
+
+    return 0;
+}
+
+uint8_t *av_stream_new_side_data(AVStream *st, enum AVPacketSideDataType type,
+                                 int size)
+{
+    int ret;
+    uint8_t *data = av_malloc(size);
+
+    if (!data)
+        return NULL;
+
+    ret = av_stream_add_side_data(st, type, data, size);
+    if (ret < 0) {
+        av_freep(&data);
+        return NULL;
+    }
+
+    return data;
 }
 
 static int match_host_pattern(const char *pattern, const char *hostname)

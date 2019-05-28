@@ -79,3 +79,26 @@ char av_get_picture_type_char(enum AVPictureType pict_type)
     default:                 return '?';
     }
 }
+
+char *av_fourcc_make_string(char *buf, uint32_t fourcc)
+{
+    int i;
+    char *orig_buf = buf;
+    size_t buf_size = AV_FOURCC_MAX_STRING_SIZE;
+
+    for (i = 0; i < 4; i++) {
+        const int c = fourcc & 0xff;
+        const int print_chr = (c >= '0' && c <= '9') ||
+                              (c >= 'a' && c <= 'z') ||
+                              (c >= 'A' && c <= 'Z') ||
+                              (c && strchr(". -_", c));
+        const int len = snprintf(buf, buf_size, print_chr ? "%c" : "[%d]", c);
+        if (len < 0)
+            break;
+        buf += len;
+        buf_size = buf_size > len ? buf_size - len : 0;
+        fourcc >>= 8;
+    }
+
+    return orig_buf;
+}

@@ -261,6 +261,20 @@ static inline void *av_x_if_null(const void *p, const void *x)
     return (void *)(intptr_t)(p ? p : x);
 }
 
+#define AV_FOURCC_MAX_STRING_SIZE 32
+
+#define av_fourcc2str(fourcc) av_fourcc_make_string((char[AV_FOURCC_MAX_STRING_SIZE]){0}, fourcc)
+
+/**
+ * Fill the provided buffer with a string containing a FourCC (four-character
+ * code) representation.
+ *
+ * @param buf    a buffer with size in bytes of at least AV_FOURCC_MAX_STRING_SIZE
+ * @param fourcc the fourcc to represent
+ * @return the buffer in input
+ */
+char *av_fourcc_make_string(char *buf, uint32_t fourcc);
+
 /**
  * @}
  * @}

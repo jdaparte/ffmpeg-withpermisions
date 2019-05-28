@@ -161,7 +161,12 @@ typedef struct AVClass {
  */
 #define AV_LOG_DEBUG    48
 
-#define AV_LOG_MAX_OFFSET (AV_LOG_DEBUG - AV_LOG_QUIET)
+/**
+ * Extremely verbose debugging, useful for libav* development.
+ */
+#define AV_LOG_TRACE    56
+
+#define AV_LOG_MAX_OFFSET (AV_LOG_TRACE - AV_LOG_QUIET)
 
 /**
  * Send the specified message to the log if the level is less than or equal

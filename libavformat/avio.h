@@ -252,10 +252,15 @@ static av_always_inline int64_t avio_tell(AVIOContext *s)
 int64_t avio_size(AVIOContext *s);
 
 /**
- * feof() equivalent for AVIOContext.
- * @return non zero if and only if end of file
+ * Similar to feof() but also returns nonzero on read errors.
+ * @return non zero if and only if at end of file or a read error happened when reading.
  */
-int url_feof(AVIOContext *s);
+int avio_feof(AVIOContext *s);
+
+/**
+ * Compat
+ **/
+#define url_feof avio_feof
 
 char *url_fgets(AVIOContext *s, char *buf, int buf_size);
 

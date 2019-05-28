@@ -33,6 +33,7 @@ HEADERS = adler32.h                                                     \
           md5.h                                                         \
           mem.h                                                         \
           dict.h                                                        \
+          display.h                                                     \
           old_pix_fmts.h                                                \
           opt.h                                                         \
           parseutils.h                                                  \
@@ -85,6 +86,7 @@ OBJS = adler32.o                                                        \
        md5.o                                                            \
        mem.o                                                            \
        dict.o                                                           \
+       display.o                                                        \
        opt.o                                                            \
        parseutils.o                                                     \
        pixdesc.o                                                        \

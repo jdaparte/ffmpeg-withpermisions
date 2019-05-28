@@ -78,6 +78,15 @@ int ffio_read_size(AVIOContext *s, unsigned char *buf, int size);
 /** @warning must be called before any I/O */
 int ffio_set_buf_size(AVIOContext *s, int buf_size);
 
+/**
+ * Ensures that the requested seekback buffer size will be available
+ *
+ * Will ensure that when reading sequentially up to buf_size, seeking
+ * within the current pos and pos+buf_size is possible.
+ * Once the stream position moves outside this window this guarantee is lost.
+ */
+int ffio_ensure_seekback(AVIOContext *s, int64_t buf_size);
+
 int ffio_limit(AVIOContext *s, int size);
 
 void ffio_init_checksum(AVIOContext *s,

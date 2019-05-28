@@ -31,6 +31,8 @@
 #ifndef AVUTIL_DICT_H
 #define AVUTIL_DICT_H
 
+#include <stdint.h>
+
 /**
  * @addtogroup lavu_dict AVDictionary
  * @ingroup lavu_data
@@ -111,6 +113,14 @@ int av_dict_count(const AVDictionary *m);
  * @return >= 0 on success otherwise an error code <0
  */
 int av_dict_set(AVDictionary **pm, const char *key, const char *value, int flags);
+
+/**
+ * Convenience wrapper for av_dict_set that converts the value to a string
+ * and stores it.
+ *
+ * Note: If AV_DICT_DONT_STRDUP_KEY is set, key will be freed on error.
+ */
+int av_dict_set_int(AVDictionary **pm, const char *key, int64_t value, int flags);
 
 /**
  * Parse the key/value pairs list and add to a dictionary.

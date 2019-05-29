@@ -26,6 +26,7 @@
 #include <inttypes.h>
 #include <limits.h>
 #include <stdint.h>
+#include <arpa/inet.h>
 
 #include "libavutil/attributes.h"
 #include "libavutil/channel_layout.h"
@@ -5394,6 +5395,10 @@ static int mov_read_uuid(MOVContext *c, AVIOContext *pb, MOVAtom atom)
         0xbe, 0x7a, 0xcf, 0xcb, 0x97, 0xa9, 0x42, 0xe8,
         0x9c, 0x71, 0x99, 0x94, 0x91, 0xe3, 0xaf, 0xac
     };
+    static const uint8_t uuid_playready_aes_data[] = {
+        0xa2, 0x39, 0x4f, 0x52, 0x5a, 0x9b, 0x4f, 0x14,
+        0xa2, 0x44, 0x6c, 0x42, 0x7c, 0x64, 0x8d, 0xf4
+    };
 
     if (atom.size < sizeof(uuid) || atom.size >= FFMIN(INT_MAX, SIZE_MAX))
         return AVERROR_INVALIDDATA;
@@ -5478,6 +5483,100 @@ static int mov_read_uuid(MOVContext *c, AVIOContext *pb, MOVAtom atom)
             if (ret < 0)
                 return ret;
         }
+    } else if (!memcmp(uuid, uuid_playready_aes_data, sizeof(uuid))) {
+        uint32_t header = 0;
+        uint32_t sample_count = 0;
+        uint16_t num_clear[10];
+        uint16_t num_clear_aux;
+        uint32_t num_enc[10];
+        uint32_t num_enc_aux;
+        uint8_t  iv[8];
+        char     aux_key[256];
+        char     aux_value[512];
+        int      i, k;
+
+        ret = avio_read(pb, (uint8_t*)&header, sizeof(header));
+        if (ret < 0)
+            return ret;
+        if (ret != sizeof(header))
+            return AVERROR_INVALIDDATA;
+
+        ret = avio_read(pb, (uint8_t*)&sample_count, sizeof(sample_count));
+        if (ret < 0)
+            return ret;
+        if (ret != sizeof(sample_count))
+            return AVERROR_INVALIDDATA;
+
+        header = ntohl(header);
+        sample_count = ntohl(sample_count);
+
+        // Lets iterate over it and attach as metadata to stream
+        for (i = 0; i < sample_count; i++) {
+            ret = avio_read(pb, &iv, sizeof(iv));
+            if (ret < 0)
+                return ret;
+            if (ret != sizeof(iv))
+                return AVERROR_INVALIDDATA;
+
+            // We will support up to 10 segments if sub-sample encryption is used
+            for (k = 0; k < 10; k++) {
+                num_clear[k] = 0;
+                num_enc[k] = 0;
+            }
+
+            if (header & 0x000002) {
+                uint16_t nbOfEntries = 0;
+                int j;
+
+                ret = avio_read(pb, (uint8_t*)&nbOfEntries, sizeof(nbOfEntries));
+                if (ret < 0)
+                    return ret;
+                if (ret != sizeof(nbOfEntries))
+                    return AVERROR_INVALIDDATA;
+
+                nbOfEntries = ntohs(nbOfEntries);
+
+                if (nbOfEntries > 10)
+                    av_log(c, AV_LOG_WARNING, "PlayReady: Unsupported number of entries: %d\n", nbOfEntries);
+
+                for (j = 0; j < nbOfEntries; j++) {
+                    ret = avio_read(pb, (uint8_t*)&num_clear_aux, sizeof(num_clear_aux));
+                    if (ret < 0)
+                        return ret;
+                    if (ret != sizeof(num_clear_aux))
+                        return AVERROR_INVALIDDATA;
+                    if (j < 10)
+                        num_clear[j] = ntohs(num_clear_aux);
+
+                    ret = avio_read(pb, (uint8_t*)&num_enc_aux, sizeof(num_enc_aux));
+                    if (ret < 0)
+                        return ret;
+                    if (ret != sizeof(num_enc_aux))
+                        return AVERROR_INVALIDDATA;
+                    if (j < 10)
+                        num_enc[j] = ntohl(num_enc_aux);
+
+                }
+            }
+
+            // Format to store it in dictionary
+            memset(aux_key, 0, sizeof(aux_key));
+            memset(aux_value, 0, sizeof(aux_value));
+            sprintf(aux_key, "prdyaes_%d", i);
+            sprintf(aux_value, "%x|%x|%x|%x|%x|%x|%x|%x|%x|%x|%x|%x|%x|%x|%x|%x|%x|%x|%x|%x|%x|%x|%x|%x|%x|%x|%x|%x",
+                iv[0], iv[1], iv[2], iv[3], iv[4], iv[5], iv[6], iv[7],
+                num_clear[0], num_enc[0], num_clear[1], num_enc[1], num_clear[2], num_enc[2],
+                num_clear[3], num_enc[3], num_clear[4], num_enc[4], num_clear[5], num_enc[5],
+                num_clear[6], num_enc[6], num_clear[7], num_enc[7], num_clear[8], num_enc[8],
+                num_clear[9], num_enc[9]);
+            av_dict_set(&c->fc->metadata, aux_key, aux_value, 0);
+        }
+
+        // Store the number of samples and clear the usage counter
+        memset(aux_value, 0, sizeof(aux_value));
+        sprintf(aux_value, "%d", sample_count);
+        av_dict_set(&c->fc->metadata, "prdy_cnt", aux_value, 0); // This is the total amount of entries
+        av_dict_set(&c->fc->metadata, "prdy_use", "0", 0);  // As consumer reads these keys, it update this entry
     }
 
     return 0;

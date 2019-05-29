@@ -849,6 +849,8 @@ int avio_closep(AVIOContext **s)
 
 URLContext *url_fileno(AVIOContext *s)
 {
+    if (!s)
+        return NULL;
     return s->url;
 }
 

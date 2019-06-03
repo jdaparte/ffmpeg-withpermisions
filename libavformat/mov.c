@@ -7380,14 +7380,14 @@ static int should_retry(AVIOContext *pb, int error_code) {
     return 1;
 }
 
-static int mov_switch_root(AVFormatContext *s, int64_t target, int index)
+static int mov_switch_root(AVFormatContext *s, int64_t target, int index, int do_seek)
 {
     int ret;
     MOVContext *mov = s->priv_data;
 
     if (index >= 0 && index < mov->frag_index.nb_items)
         target = mov->frag_index.item[index].moof_offset;
-    if (avio_seek(s->pb, target, SEEK_SET) != target) {
+    if (do_seek && avio_seek(s->pb, target, SEEK_SET) != target) {
         av_log(mov->fc, AV_LOG_ERROR, "root atom offset 0x%"PRIx64": partial file\n", target);
         return AVERROR_INVALIDDATA;
     }
@@ -7450,9 +7450,9 @@ static int mov_read_packet(AVFormatContext *s, AVPacket *pkt)
  retry:
     sample = mov_find_next_sample(s, &st);
     if (!sample || (mov->next_root_atom && sample->pos > mov->next_root_atom)) {
-        if (!mov->next_root_atom)
+        if (!mov->next_root_atom && !(mov->flags & MOV_FLAG_HLS))
             return AVERROR_EOF;
-        if ((ret = mov_switch_root(s, mov->next_root_atom, -1)) < 0)
+        if ((ret = mov_switch_root(s, mov->next_root_atom, -1, mov->next_root_atom)) < 0)
             return ret;
         goto retry;
     }
@@ -7581,7 +7581,7 @@ static int mov_seek_fragment(AVFormatContext *s, AVStream *st, int64_t timestamp
     if (index < 0)
         index = 0;
     if (!mov->frag_index.item[index].headers_read)
-        return mov_switch_root(s, -1, index);
+        return mov_switch_root(s, -1, index, 1);
     if (index + 1 < mov->frag_index.nb_items)
         mov->next_root_atom = mov->frag_index.item[index + 1].moof_offset;
 
@@ -7697,6 +7697,14 @@ static int mov_read_seek(AVFormatContext *s, int stream_index, int64_t sample_ti
 #define OFFSET(x) offsetof(MOVContext, x)
 #define FLAGS AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_DECODING_PARAM
 static const AVOption mov_options[] = {
+    {"movdflags",
+        "MOV demuxer flags",
+        OFFSET(flags), AV_OPT_TYPE_FLAGS, {.i64 = MOV_FLAG_NOTSET},
+        INT_MIN, INT_MAX, FLAGS, "movdflags"},
+    {"hls",
+        "Try to read additional concatened root atoms instead of reporting EOF in read_packet",
+        OFFSET(flags), AV_OPT_TYPE_CONST, {.i64 = MOV_FLAG_HLS},
+        INT_MIN, INT_MAX, FLAGS, "movdflags"},
     {"use_absolute_path",
         "allow using absolute path when opening alias, this is a possible security issue",
         OFFSET(use_absolute_path), AV_OPT_TYPE_BOOL, {.i64 = 0},

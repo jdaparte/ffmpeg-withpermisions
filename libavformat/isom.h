@@ -283,6 +283,7 @@ typedef struct MOVContext {
     int decryption_key_len;
     int enable_drefs;
     int32_t movie_display_matrix[3][3]; ///< display matrix from mvhd
+    int flags;
 } MOVContext;
 
 int ff_mp4_read_descr_len(AVIOContext *pb);
@@ -296,6 +297,9 @@ void ff_mp4_parse_es_descr(AVIOContext *pb, int *es_id);
 #define MP4DecConfigDescrTag            0x04
 #define MP4DecSpecificDescrTag          0x05
 #define MP4SLDescrTag                   0x06
+
+#define MOV_FLAG_NOTSET                 0x00
+#define MOV_FLAG_HLS                    0x01
 
 #define MOV_TFHD_BASE_DATA_OFFSET       0x01
 #define MOV_TFHD_STSD_ID                0x02

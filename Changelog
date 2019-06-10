@@ -1,3 +1,46 @@
+3.1.0.21 -- 10/06/2019
+- [CVE-2016-7905] avformat/avidec: Check nb_streams in read_gab2_sub()
+- [CVE-2016-7502]avcodec/cavsdsp: use av_clip_uint8() for idct
+- [CVE-2016-7450] avcodec/g726: Add missing ADDB output mask
+- libavformat/mov.c: Try to read additional concatened root atoms instead of reporting EOF in read_packet (original author: vpenne)
+- libavformat/mov.c: Added Playready support
+- libavformat/mov.c: Updated mp4 demux with upstream changes. ffmpeg changeset: fbdb3aa179939616bc7fb26e3fe386b85b58e467
+- libavformat/qtpalette.h: Added ff_get_qtpalette method.
+- libavformat/replaygain.h: Added side data support for replaygain tags.
+- libavformat/internal.h: Added ff_rfps_calculate method.
+- libavformat/internal.h: Added ff_rfps_add_frame method.
+- libavformat/internal.h: Added ff_alloc_extradata method.
+- libavformat/internal.h: Changed ff_generate_avci_extradata return type for error management.
+- libavformat/avio_internal.h: Added ffio_ensure_seekback method.
+- libavformat/avio_internal.h: Added ffio_read_size method.
+- libavformat/avio.h: Added avio_feof method (old url_feof).
+- libavformat/avformat.h: Added AVINDEX_DISCARD_FRAME flag support.
+- libavformat/avformat.h: Added AVStream display_aspect_ratio support.
+- libavformat/avformat.h: Added AVPROBE_SCORE_EXTENSION constant.
+- libavcodec/flac.h: Added flac_parse_block_header method.
+- libavcodec/avcodec.h: Added AV_INPUT_BUFFER_PADDING_SIZE constant.
+- libavcodec/avcodec.h: Extended packet side data support
+- libavcodec/avcodec.h: Added extra codecs
+- libavutil/pixdesc.h: Added av_color_* methods.
+- libavutil/encryption_info.h: Added side data support for encryption info.
+- libavutil/spherical.h: Added side data support for Spherical video mapping.
+- libavutil/aes_ctr.h: Added AES CTR support for DRM.
+- libavutil/display.h: Added matrix rotation methods.
+- libavutil/common.h: Added FFNABS helper.
+- libavutil/avutil.h: Added av_fourcc2str method.
+- libavutil/rational.h: Added av_make_q method.
+- libavutil/internal.h: Added avpriv_request_sample method.
+- libavutil/internal.h: Added avpriv_dict_set_timestamp method.
+- libavutil/mem.h: Added av_reallocp_array method.
+- libavutil/mem.h: Added av_realloc_array method.
+- libavutil/mem.h: Added av_reallocp method.
+- libavutil/dict.h: Added av_dict_set_int method.
+- libavutil/opt.h: Added AV_OPT_TYPE_BOOL support.
+- libavutil/log.h: Added support for AV_LOG_TRACE
+- libavutil/time_internal.h: Added new module to manage time utilities
+- libavformat/rtsp.c: Disabled build dependency with http protocol
+- libavformat/aviobuf.c: Fixed segfault when NULL is passed to url_fileno.
+
 3.1.0.20 -- 24/05/2019
 - Fix SmoothStream contents with tfhd boxes with stsd flag.
 - aacdec: Set the profile during decoding

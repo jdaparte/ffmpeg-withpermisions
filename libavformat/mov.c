@@ -7256,6 +7256,7 @@ static int mov_read_header(AVFormatContext *s)
             mov->decryption_key_len, AES_CTR_KEY_SIZE);
         return AVERROR(EINVAL);
     }
+    av_log(mov->fc, AV_LOG_DEBUG, "Flags: hls %d, mss %d\n", mov->flags & MOV_FLAG_HLS, mov->flags & MOV_FLAG_MSS);
 
     mov->fc = s;
     mov->trak_index = -1;
@@ -7790,9 +7791,9 @@ static const AVOption mov_options[] = {
         AV_OPT_TYPE_CONST, {.i64 = MOV_FLAG_MSS}, INT_MIN, INT_MAX,
         AV_OPT_FLAG_ENCODING_PARAM, "movdflags"},
     {"hls",
-        "Try to read additional concatened root atoms instead of reporting EOF in read_packet",
-        OFFSET(flags), AV_OPT_TYPE_CONST, {.i64 = MOV_FLAG_HLS},
-        INT_MIN, INT_MAX, FLAGS, "movdflags"},
+        "Try to read additional concatened root atoms instead of reporting EOF in read_packet", 0,
+        AV_OPT_TYPE_CONST, {.i64 = MOV_FLAG_HLS}, INT_MIN, INT_MAX,
+        FLAGS, "movdflags"},
     {"use_absolute_path",
         "allow using absolute path when opening alias, this is a possible security issue",
         OFFSET(use_absolute_path), AV_OPT_TYPE_BOOL, {.i64 = 0},

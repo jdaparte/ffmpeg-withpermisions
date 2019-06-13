@@ -302,7 +302,7 @@ void ff_mp4_parse_es_descr(AVIOContext *pb, int *es_id);
 
 #define MOV_FLAG_NOTSET                 0x00
 #define MOV_FLAG_HLS                    0x01
-#define MOV_FLAG_MSS                    0x01
+#define MOV_FLAG_MSS                    0x02
 
 #define MOV_TFHD_BASE_DATA_OFFSET       0x01
 #define MOV_TFHD_STSD_ID                0x02

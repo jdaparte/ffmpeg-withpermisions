@@ -74,8 +74,16 @@ enum RTSPControlTransport {
 #define RTSP_TCP_MAX_PACKET_SIZE 1472
 #define RTSP_DEFAULT_NB_AUDIO_CHANNELS 1
 #define RTSP_DEFAULT_AUDIO_SAMPLERATE 44100
+#ifndef RTSP_RTP_PORT_MIN
 #define RTSP_RTP_PORT_MIN 5000
+#else
+#warning define RTSP_RTP_PORT_MIN
+#endif
+#ifndef RTSP_RTP_PORT_MAX
 #define RTSP_RTP_PORT_MAX 65000
+#else
+#warning define RTSP_RTP_PORT_MAX
+#endif
 
 /**
  * This describes a single item in the "Transport:" line of one stream as

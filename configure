@@ -2375,6 +2375,12 @@ for opt do
         ;;
         --help|-h) show_help
         ;;
+        --rtsp-min-port=*)
+            add_cflags -DRTSP_RTP_PORT_MIN=$optval
+        ;;
+        --rtsp-max-port=*)
+            add_cflags -DRTSP_RTP_PORT_MAX=$optval
+        ;;
         --fatal-warnings) enable fatal_warnings
         ;;
         *)

@@ -1,3 +1,9 @@
+3.1.0.22 -- 21/06/2019
+- mov.c: separate the conflicting MSS and HLS flags
+- moof is parsed corresponding to the smoothstreaming specification.
+- mov: add new options 'start_time' and 'time_scale' to be used when these informations are stored externally (eg. a smooth streaming manifest)
+- add rtsp port selection in configure
+
 3.1.0.21 -- 10/06/2019
 - [CVE-2016-7905] avformat/avidec: Check nb_streams in read_gab2_sub()
 - [CVE-2016-7502]avcodec/cavsdsp: use av_clip_uint8() for idct

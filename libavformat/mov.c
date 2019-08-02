@@ -2436,13 +2436,15 @@ static int mov_finalize_stsd_codec(MOVContext *c, AVIOContext *pb,
             st->codec->sample_rate = AV_RB32(st->codec->extradata + 32);
         }
         break;
-    case AV_CODEC_ID_AC3:
-    case AV_CODEC_ID_EAC3:
     case AV_CODEC_ID_MPEG1VIDEO:
     case AV_CODEC_ID_VC1:
     case AV_CODEC_ID_VP8:
     case AV_CODEC_ID_VP9:
         st->need_parsing = AVSTREAM_PARSE_FULL;
+        break;
+    case AV_CODEC_ID_AC3:
+    case AV_CODEC_ID_EAC3:
+        st->need_parsing = AVSTREAM_PARSE_NONE;
         break;
     default:
         break;

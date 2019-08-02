@@ -6328,6 +6328,7 @@ static int mov_read_tenc(MOVContext *c, AVIOContext *pb, MOVAtom atom)
             return AVERROR(ENOMEM);
     }
     sc->cenc.per_sample_iv_size = avio_r8(pb);
+    sc->cenc.default_encrypted_sample->iv_size = sc->cenc.per_sample_iv_size;
     if (sc->cenc.per_sample_iv_size != 0 && sc->cenc.per_sample_iv_size != 8 &&
         sc->cenc.per_sample_iv_size != 16) {
         av_log(c->fc, AV_LOG_ERROR, "invalid per-sample IV size value\n");
@@ -6349,6 +6350,7 @@ static int mov_read_tenc(MOVContext *c, AVIOContext *pb, MOVAtom atom)
             av_log(c->fc, AV_LOG_ERROR, "failed to read the default IV\n");
             return AVERROR_INVALIDDATA;
         }
+        sc->cenc.default_encrypted_sample->iv_size = iv_size;
     }
 
     return 0;

@@ -7679,8 +7679,10 @@ static int mov_read_packet(AVFormatContext *s, AVPacket *pkt)
         aax_filter(pkt->data, pkt->size, mov);
 
     ret = cenc_filter(mov, st, sc, pkt, current_index);
-    if (ret < 0)
+    if (ret < 0) {
+        av_free_packet(pkt);
         return ret;
+    }
 
     return 0;
 }

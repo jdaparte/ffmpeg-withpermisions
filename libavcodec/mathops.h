@@ -25,11 +25,14 @@
 #include <stdint.h>
 
 #include "libavutil/common.h"
-#include "config.h"
 
 extern const uint32_t ff_inverse[257];
 extern const uint8_t  ff_reverse[256];
 extern const uint8_t ff_sqrt_tab[256];
+
+#ifdef HAVE_AV_CONFIG_H
+
+#include "config.h"
 
 #if   ARCH_ARM
 #   include "arm/mathops.h"
@@ -44,6 +47,8 @@ extern const uint8_t ff_sqrt_tab[256];
 #elif ARCH_X86
 #   include "x86/mathops.h"
 #endif
+
+#endif /* HAVE_AV_CONFIG_H */
 
 /* generic implementation */
 

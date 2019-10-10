@@ -36,7 +36,9 @@
 #include "libavutil/log.h"
 #include "libavutil/avassert.h"
 #include "mathops.h"
+#ifdef HAVE_AV_CONFIG_H
 #include "config.h"
+#endif
 
 typedef struct PutBitContext {
     uint32_t bit_buf;

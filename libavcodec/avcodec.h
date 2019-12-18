@@ -511,6 +511,7 @@ enum AVCodecID {
     AV_CODEC_ID_DSS,
     AV_CODEC_ID_CC,
     AV_CODEC_ID_TTML,
+    AV_CODEC_ID_AC4,
     AV_CODEC_ID_FFMETADATA = 0x21000,   ///< Dummy codec for streams containing only metadata information.
 
 #if FF_API_CODEC_ID

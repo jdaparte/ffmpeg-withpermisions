@@ -2544,7 +2544,13 @@ static const AVCodecDescriptor codec_descriptors[] = {
 	.name      = "ttml",
 	.long_name = NULL_IF_CONFIG_SMALL("TTML Subtitles"),
     },
-
+    {
+        .id        = AV_CODEC_ID_AC4,
+        .type      = AVMEDIA_TYPE_AUDIO,
+        .name      = "ac4",
+        .long_name = NULL_IF_CONFIG_SMALL("ATSC A/52A (AC-4)"),
+        .props     = AV_CODEC_PROP_LOSSY,
+    },
 };
 
 const AVCodecDescriptor *avcodec_descriptor_get(enum AVCodecID id)

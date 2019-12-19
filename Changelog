@@ -1,3 +1,8 @@
+3.1.0.25 -- 19/12/2019
+- Cosmetic, fix identation
+- Add codec and codec description for audio type ac-4
+- build: fixed warning "library.mak:107: warning: overriding commands for target"
+
 3.1.0.24 -- 10/10/2019
 - build: protect config.h inclusions to prevent side effects and possible build failures
 - configure: removed soname version (required for Android build)

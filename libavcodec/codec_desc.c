@@ -2551,6 +2551,14 @@ static const AVCodecDescriptor codec_descriptors[] = {
         .long_name = NULL_IF_CONFIG_SMALL("ATSC A/52A (AC-4)"),
         .props     = AV_CODEC_PROP_LOSSY,
     },
+    {
+        .id        = AV_CODEC_ID_DFXP,
+        .type      = AVMEDIA_TYPE_SUBTITLE,
+        .name      = "dfxp",
+        .long_name = NULL_IF_CONFIG_SMALL("DFXP Subtitles"),
+    },
+
+
 };
 
 const AVCodecDescriptor *avcodec_descriptor_get(enum AVCodecID id)

@@ -1,3 +1,7 @@
+3.1.0.26 -- 26/05/2020
+- avutil/error: Introduce new error codes for 4XX and 5XX replies from remote servers
+- Create template for merge requests.
+
 3.1.0.25 -- 19/12/2019
 - Cosmetic, fix identation
 - Add codec and codec description for audio type ac-4

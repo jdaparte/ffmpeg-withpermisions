@@ -4336,6 +4336,15 @@ static int mov_read_trak(MOVContext *c, AVIOContext *pb, MOVAtom atom)
     av_freep(&sc->elst_data);
     av_freep(&sc->rap_group);
 
+    if (c->moov_pssh) {
+        av_log(c->fc, AV_LOG_VERBOSE, "Retrieving a stored pssh, size %d\n", c->moov_pssh_size);
+        ret = av_stream_add_side_data(st, AV_PKT_DATA_ENCRYPTION_INIT_INFO, c->moov_pssh, c->moov_pssh_size);
+        /* c->moov_pssh will be freed later on, except if av_stream_add_side_data failed */
+        if (ret < 0)
+            av_free(c->moov_pssh);
+        c->moov_pssh = NULL;
+    }
+
     return 0;
 }
 
@@ -5948,7 +5957,7 @@ static int mov_parse_auxiliary_info(MOVContext *c, MOVStreamContext *sc, AVIOCon
     prev_pos = avio_tell(pb);
     if (!(pb->seekable & AVIO_SEEKABLE_NORMAL) ||
         avio_seek(pb, encryption_index->auxiliary_offsets[0], SEEK_SET) != encryption_index->auxiliary_offsets[0]) {
-        av_log(c->fc, AV_LOG_INFO, "Failed to seek for auxiliary info, will only parse senc atoms for encryption info\n");
+        av_log(c->fc, AV_LOG_VERBOSE, "Failed to seek for auxiliary info, will only parse senc atoms for encryption info\n");
         goto finish;
     }
 
@@ -6198,9 +6207,13 @@ static int mov_read_pssh(MOVContext *c, AVIOContext *pb, MOVAtom atom)
     int ret = 0, old_side_data_size;
     unsigned int version, kid_count, extra_data_size, alloc_size = 0;
 
-    if (c->fc->nb_streams < 1)
-        return 0;
-    st = c->fc->streams[c->fc->nb_streams-1];
+    if (c->fc->nb_streams < 1) {
+        av_log(c->fc, AV_LOG_VERBOSE, "pssh before trak: store pssh for later use\n");
+        st = NULL;
+    } else {
+        av_log(c->fc, AV_LOG_VERBOSE, "pssh after trak : add to the last stream\n");
+        st = c->fc->streams[c->fc->nb_streams-1];
+    }
 
     version = avio_r8(pb); /* version */
     avio_rb24(pb);  /* flags */
@@ -6265,8 +6278,8 @@ static int mov_read_pssh(MOVContext *c, AVIOContext *pb, MOVAtom atom)
     mov_dump_encryption_init_info(c, "AV_PKT_DATA_ENCRYPTION_INIT_INFO", info);
 #endif
 
-    // If there is existing initialization data, append to the list.
-    old_side_data = av_stream_get_side_data(st, AV_PKT_DATA_ENCRYPTION_INIT_INFO, &old_side_data_size);
+    // If there is a stream with an existing initialization data, append to the list.
+    old_side_data = (st ? av_stream_get_side_data(st, AV_PKT_DATA_ENCRYPTION_INIT_INFO, &old_side_data_size) : NULL);
     if (old_side_data) {
         old_init_info = av_encryption_init_info_get_side_data(old_side_data, old_side_data_size);
         if (old_init_info) {
@@ -6290,10 +6303,17 @@ static int mov_read_pssh(MOVContext *c, AVIOContext *pb, MOVAtom atom)
         ret = AVERROR(ENOMEM);
         goto finish;
     }
-    ret = av_stream_add_side_data(st, AV_PKT_DATA_ENCRYPTION_INIT_INFO,
-                                  side_data, side_data_size);
-    if (ret < 0)
-        av_free(side_data);
+
+    // Either add the encryption info to the stream side data, or store for later usage
+    if (st) {
+        ret = av_stream_add_side_data(st, AV_PKT_DATA_ENCRYPTION_INIT_INFO,
+                                      side_data, side_data_size);
+        if (ret < 0)
+            av_free(side_data);
+    } else {
+        c->moov_pssh = side_data;
+        c->moov_pssh_size = side_data_size;
+    }
 
 finish:
     av_encryption_init_info_free(info);

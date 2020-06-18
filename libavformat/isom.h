@@ -286,6 +286,8 @@ typedef struct MOVContext {
     int enable_drefs;
     int32_t movie_display_matrix[3][3]; ///< display matrix from mvhd
     int flags;
+    uint8_t *moov_pssh;
+    int moov_pssh_size;
 } MOVContext;
 
 int ff_mp4_read_descr_len(AVIOContext *pb);

@@ -80,6 +80,45 @@ static int64_t add_ctts_entry(MOVStts** ctts_data, unsigned int* ctts_count, uns
 static void fix_timescale(MOVContext *c, MOVStreamContext *sc);
 static void mov_build_index(MOVContext *mov, AVStream *st);
 
+//#define DUMP_ENCRYPTION_INFO
+#ifdef DUMP_ENCRYPTION_INFO
+static void mov_hex_dump(MOVContext *mov, const char *prefix_1, const char *prefix_2, const unsigned char *buf, unsigned int size)
+{
+    char str[32768];
+    unsigned i;
+    sprintf(str, "%s %s (len %d):", prefix_1, prefix_2, size);
+    for (i = 0; i < FFMIN(size, 10000); i++) {
+        sprintf(str  + strlen(str), "%02X ", buf[i]);
+    }
+    av_log(mov->fc, AV_LOG_VERBOSE, "%s\n", str);
+}
+
+static void mov_dump_encryption_init_info(MOVContext *mov, const char *prefix, AVEncryptionInitInfo *avii)
+{
+    unsigned i;
+    mov_hex_dump(mov, prefix, "system id ", avii->system_id, avii->system_id_size);
+    av_log(mov->fc, AV_LOG_VERBOSE, "%s num_key_ids %d\n", prefix, avii->num_key_ids);
+    for (i = 0; i < avii->num_key_ids; i++)
+        mov_hex_dump(mov, prefix, "key id ", avii->key_ids[i], avii->key_id_size);
+    mov_hex_dump(mov, prefix, "data", avii->data, avii->data_size);
+    av_log(mov->fc, AV_LOG_VERBOSE, "%s next: %p\n---------\n", prefix, avii->next);
+}
+
+static void mov_dump_encryption_info(MOVContext *mov, const char *prefix, AVEncryptionInfo *avei)
+{
+    unsigned i;
+    av_log(mov->fc, AV_LOG_VERBOSE, "%s scheme: %c%c%c%c\n", prefix, avei->scheme >> 24, avei->scheme >> 16, avei->scheme >> 8, avei->scheme >> 0);
+    av_log(mov->fc, AV_LOG_VERBOSE, "%s crypt_byte_block: %d, skip_byte_block: %d\n", prefix, avei->crypt_byte_block, avei->skip_byte_block);
+    mov_hex_dump(mov, prefix, "key id", avei->key_id, avei->key_id_size);
+    mov_hex_dump(mov, prefix, "iv    ", avei->iv, avei->iv_size);
+    av_log(mov->fc, AV_LOG_VERBOSE, "%s subsample_count: %d\n", prefix, avei->subsample_count);
+    for (i = 0; i < avei->subsample_count; i++) {
+        av_log(mov->fc, AV_LOG_VERBOSE, "%s \tsubs %d - clear=%d enc=%d\n", prefix, i, avei->subsamples[i].bytes_of_clear_data, avei->subsamples[i].bytes_of_protected_data);
+    }
+    av_log(mov->fc, AV_LOG_VERBOSE, "%s\n---------\n", prefix);
+}
+#endif
+
 int ff_mov_read_esds(AVFormatContext *fc, AVIOContext *pb)
 {
     AVStream *st;
@@ -6222,6 +6261,10 @@ static int mov_read_pssh(MOVContext *c, AVIOContext *pb, MOVAtom atom)
     info->data = extra_data;
     info->data_size = extra_data_size;
 
+#ifdef DUMP_ENCRYPTION_INFO
+    mov_dump_encryption_init_info(c, "AV_PKT_DATA_ENCRYPTION_INIT_INFO", info);
+#endif
+
     // If there is existing initialization data, append to the list.
     old_side_data = av_stream_get_side_data(st, AV_PKT_DATA_ENCRYPTION_INIT_INFO, &old_side_data_size);
     if (old_side_data) {
@@ -6511,6 +6554,16 @@ static int cenc_filter(MOVContext *mov, AVStream* st, MOVStreamContext *sc, AVPa
             ret = av_packet_add_side_data(pkt, AV_PKT_DATA_ENCRYPTION_INFO, side_data, size);
             if (ret < 0)
                 av_free(side_data);
+
+#ifdef DUMP_ENCRYPTION_INFO
+            av_log(mov->fc, AV_LOG_VERBOSE, "AV_PKT_DATA_ENCRYPTION_INFO got %s, st %d, size %d, codec %d, PTS %g\n",
+                    (st->codec->codec_type == AVMEDIA_TYPE_AUDIO ? "audio" : (st->codec->codec_type == AVMEDIA_TYPE_VIDEO ? "video" : "other")),
+                    st->index,
+                    pkt->size,
+                    st->codec->codec_id,
+                    pkt->pts * av_q2d(st->time_base));
+            mov_dump_encryption_info(mov, "AV_PKT_DATA_ENCRYPTION_INFO", encrypted_sample);
+#endif                
             return ret;
         }
     }

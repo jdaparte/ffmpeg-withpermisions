@@ -1,3 +1,6 @@
+3.1.0.28 -- 05/10/2020
+- avformat/mov: add support for multiple pssh boxes before a trak box, a.k.a. extend commit ed82cd2
+
 3.1.0.27 -- 22/06/2020
 - avformat/mov: when a pssh box is located before a trak box in a moov atom, we have no AVStream to store our encryption info along
 - avformat/mov: optionally dump encryption info (warning: will flood the syslog)

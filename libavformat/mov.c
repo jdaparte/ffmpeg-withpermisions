@@ -80,8 +80,6 @@ static int64_t add_ctts_entry(MOVStts** ctts_data, unsigned int* ctts_count, uns
 static void fix_timescale(MOVContext *c, MOVStreamContext *sc);
 static void mov_build_index(MOVContext *mov, AVStream *st);
 
-//#define DUMP_ENCRYPTION_INFO
-#ifdef DUMP_ENCRYPTION_INFO
 static void mov_hex_dump(MOVContext *mov, const char *prefix_1, const char *prefix_2, const unsigned char *buf, unsigned int size)
 {
     char str[32768];
@@ -93,6 +91,8 @@ static void mov_hex_dump(MOVContext *mov, const char *prefix_1, const char *pref
     av_log(mov->fc, AV_LOG_VERBOSE, "%s\n", str);
 }
 
+//#define DUMP_ENCRYPTION_INFO
+#ifdef DUMP_ENCRYPTION_INFO
 static void mov_dump_encryption_init_info(MOVContext *mov, const char *prefix, AVEncryptionInitInfo *avii)
 {
     unsigned i;
@@ -6276,10 +6276,17 @@ static int mov_read_pssh(MOVContext *c, AVIOContext *pb, MOVAtom atom)
 
 #ifdef DUMP_ENCRYPTION_INFO
     mov_dump_encryption_init_info(c, "AV_PKT_DATA_ENCRYPTION_INIT_INFO", info);
+#else
+    mov_hex_dump(c, "AV_PKT_DATA_ENCRYPTION_INIT_INFO", "system id ", info->system_id, info->system_id_size);
 #endif
 
-    // If there is a stream with an existing initialization data, append to the list.
-    old_side_data = (st ? av_stream_get_side_data(st, AV_PKT_DATA_ENCRYPTION_INIT_INFO, &old_side_data_size) : NULL);
+    // If there is an existing initialization data, append to the list.
+    if (st) {
+        old_side_data = av_stream_get_side_data(st, AV_PKT_DATA_ENCRYPTION_INIT_INFO, &old_side_data_size);
+    } else {
+        old_side_data = c->moov_pssh;
+        old_side_data_size = c->moov_pssh_size;
+    }
     if (old_side_data) {
         old_init_info = av_encryption_init_info_get_side_data(old_side_data, old_side_data_size);
         if (old_init_info) {
@@ -6291,6 +6298,7 @@ static int mov_read_pssh(MOVContext *c, AVIOContext *pb, MOVAtom atom)
                 }
             }
             info = old_init_info;
+            av_log(c->fc, AV_LOG_VERBOSE, "pssh appended\n");
         } else {
             // Assume existing side-data will be valid, so the only error we could get is OOM.
             ret = AVERROR(ENOMEM);

@@ -29,6 +29,32 @@
 #include <poll.h>
 #endif
 
+#define POLLING_TIME 100 /// Time in milliseconds between interrupt check
+
+static int ff_poll_interrupt(struct pollfd *p, nfds_t nfds, int timeout,
+                             AVIOInterruptCB *cb)
+{
+    int runs = timeout / POLLING_TIME;
+    int ret = 0;
+
+    do {
+        if (ff_check_interrupt(cb))
+            return AVERROR_EXIT;
+        ret = poll(p, nfds, POLLING_TIME);
+        if (ret != 0) {
+            if (ret < 0)
+                ret = ff_neterrno();
+            if (ret == AVERROR(EINTR))
+                continue;
+            break;
+        }
+    } while (timeout <= 0 || runs-- > 0);
+
+    if (!ret)
+        return AVERROR(ETIMEDOUT);
+    return ret;
+}
+
 typedef struct TCPContext {
     const AVClass *class;
     int fd;
@@ -127,9 +153,8 @@ static int tcp_open(URLContext *h, const char *uri, int flags)
             ret = ff_neterrno();
             goto fail1;
         }
-        ret = poll(&lp, 1, s->listen_timeout >= 0 ? s->listen_timeout : -1);
-        if (ret <= 0) {
-            ret = AVERROR(ETIMEDOUT);
+        ret = ff_poll_interrupt(&lp, 1, s->listen_timeout >= 0 ? s->listen_timeout : -1, &h->interrupt_callback);
+        if (ret < 0) {
             goto fail1;
         }
         fd1 = accept(fd, NULL, NULL);

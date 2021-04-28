@@ -37,3 +37,17 @@
 # Functional tests results
 
 <Post the result of test-app, integration or manual tests>
+
+# Reviewers
+
+| @username |       name       
+|----------|------------------
+| @lfeuchet | Laurent Feuchet
+| @sleduc   | Sebastien LEDUC
+| @agourdon | Arnaud GOURDON
+| @nfaure   | Nicolas Faure
+| @mmelki   | Mohamed Melki
+| @mavila   | Mathieu Avila
+| @onaudan  | Olivier NAUDAN
+| @fbussery | BUSSERY Francois
+

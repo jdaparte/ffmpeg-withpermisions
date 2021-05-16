@@ -48,6 +48,7 @@ static int aac_sync(uint64_t state, AACAC3ParseContext *hdr_info,
     hdr_info->channels    = ff_mpeg4audio_channels[hdr.chan_config];
     hdr_info->samples     = hdr.samples;
     hdr_info->bit_rate    = hdr.bit_rate;
+    hdr_info->frame_size  = size;
     return size;
 }
 

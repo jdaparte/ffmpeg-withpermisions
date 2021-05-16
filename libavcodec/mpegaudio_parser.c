@@ -100,8 +100,14 @@ static int mpegaudio_parse(AVCodecParserContext *s1,
         return buf_size;
     }
 
-    *poutbuf = buf;
-    *poutbuf_size = buf_size;
+    if (s->header_count < 0) {
+        *poutbuf = NULL;
+        *poutbuf_size = 0;
+    } else {
+        *poutbuf = buf;
+        *poutbuf_size = buf_size;
+    }
+
     return next;
 }
 

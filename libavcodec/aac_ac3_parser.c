@@ -68,8 +68,13 @@ get_next:
         return buf_size;
     }
 
-    *poutbuf = buf;
-    *poutbuf_size = buf_size;
+    if (buf_size != s->frame_size) {
+        *poutbuf = NULL;
+        *poutbuf_size = 0;
+    } else {
+        *poutbuf = buf;
+        *poutbuf_size = buf_size;
+    }
 
     /* update codec info */
     if(s->codec_id)

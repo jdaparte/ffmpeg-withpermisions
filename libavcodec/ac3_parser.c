@@ -164,6 +164,7 @@ static int ac3_sync(uint64_t state, AACAC3ParseContext *hdr_info,
     hdr_info->channel_layout = hdr.channel_layout;
     hdr_info->samples = hdr.num_blocks * 256;
     hdr_info->service_type = hdr.bitstream_mode;
+    hdr_info->frame_size = hdr.frame_size;
     if (hdr.bitstream_mode == 0x7 && hdr.channels > 1)
         hdr_info->service_type = AV_AUDIO_SERVICE_TYPE_KARAOKE;
     if(hdr.bitstream_id>10)

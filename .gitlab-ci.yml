@@ -1,0 +1,35 @@
+stages:
+  - legal
+  - quality
+  - build
+  - test
+
+variables:
+  GROUP: "frogbywyplay"
+  MAINLINE: "3.1.0.20.2-stable"
+
+trial-blackduck:
+  stage: legal
+  tags:
+    - bash
+  image: docker.wyplay.com/tools/blackduck:latest
+  script:
+    - echo "Attempting Analysis on Repository '${CI_PROJECT_PATH}' in Branch '${CI_COMMIT_REF_NAME}':"
+    - BRANCH=${MAINLINE} GROUP=${GROUP} bdu --dir .
+  only:
+    - /^wip-.*$/
+  allow_failure: true
+
+strict-blackduck:
+  stage: legal
+  tags:
+    - bash
+  image: docker.wyplay.com/tools/blackduck:latest
+  script:
+    - echo "Running Analysis on Repository '${CI_PROJECT_PATH}' in Branch '${CI_COMMIT_REF_NAME}':"
+    - BRANCH=${MAINLINE} GROUP=${GROUP} bdu --dir .
+  only:
+    refs:
+      - 3.1.0.20.2-stable
+    variables:
+      - $CI_PROJECT_NAMESPACE == "frogbywyplay"

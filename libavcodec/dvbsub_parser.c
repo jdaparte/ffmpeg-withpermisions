@@ -51,18 +51,25 @@ static int dvbsub_parse(AVCodecParserContext *s,
     uint8_t *p, *p_end;
     int i, len, buf_pos = 0;
 
-    av_dlog(avctx, "DVB parse packet pts=%"PRIx64", lpts=%"PRIx64", cpts=%"PRIx64":\n",
-            s->pts, s->last_pts, s->cur_frame_pts[s->cur_frame_start_index]);
+    fprintf(stdout, "##ffm::dvbsub_parser DVB parse packet pts=%"PRIx64", lpts=%"PRIx64", cpts=%"PRIx64":\n",
+            s->pts, s->last_pts, s->cur_frame_pts[s->cur_frame_start_index]);fflush(stdout);
 
+    int j = 0;
     for (i=0; i < buf_size; i++)
     {
-        av_dlog(avctx, "%02x ", buf[i]);
-        if (i % 16 == 15)
-            av_dlog(avctx, "\n");
+        if (i % 16 == 0)
+        {
+            fprintf(stdout, "##ffm::dvbsub_parser[%d] 0x%8p:", j, buf[i]);
+            j++;
+        }
+
+        fprintf(stdout, "%02x ", buf[i]);
+        if (i % 16 == 15) {
+            fprintf(stdout, "\n");fflush(stdout);
+        }
     }
 
-    if (i % 16 != 0)
-        av_dlog(avctx, "\n");
+    fprintf(stdout, "\n##ffm::dvbsub_parser::%s[%d] -- end DVB parse -- \n", __FUNCTION__, __LINE__);fflush(stdout);
 
     *poutbuf = NULL;
     *poutbuf_size = 0;

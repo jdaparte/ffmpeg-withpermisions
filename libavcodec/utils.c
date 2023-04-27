@@ -1963,7 +1963,7 @@ int avcodec_decode_subtitle2(AVCodecContext *avctx, AVSubtitle *sub,
         av_log(avctx, AV_LOG_ERROR, "Invalid media type for subtitles\n");
         return AVERROR(EINVAL);
     }
-
+    if (!avctx || !sub || !avpkt) { fprintf(stdout, "##ffm::utils::%s[%d] NULL :( \n", __FUNCTION__, __LINE__); fflush(stdout); }
     *got_sub_ptr = 0;
     avcodec_get_subtitle_defaults(sub);
 
@@ -2001,7 +2001,7 @@ int avcodec_decode_subtitle2(AVCodecContext *avctx, AVSubtitle *sub,
         if (*got_sub_ptr)
             avctx->frame_number++;
     }
-
+    fprintf(stdout, "##ffm::utils::%s[%d] ret(%d)\n", __FUNCTION__, __LINE__, ret); fflush(stdout);
     return ret;
 }
 
@@ -2010,6 +2010,7 @@ void avsubtitle_free(AVSubtitle *sub)
     int i;
 
     for (i = 0; i < sub->num_rects; i++) {
+        if (!sub || !sub->rects[i] || !sub->rects[i]->pict.data[0]) { fprintf(stdout, "##ffm::utils::%s[%d] NULL :( \n", __FUNCTION__, __LINE__); fflush(stdout); }
         av_freep(&sub->rects[i]->pict.data[0]);
         av_freep(&sub->rects[i]->pict.data[1]);
         av_freep(&sub->rects[i]->pict.data[2]);

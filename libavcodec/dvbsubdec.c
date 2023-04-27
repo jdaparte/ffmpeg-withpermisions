@@ -575,6 +575,7 @@ static int dvbsub_read_2bit_string(uint8_t *destbuf, int dbuf_len,
         }
     }
 
+    if (get_bits(&gb, 6)) { fprintf(stdout, "\n##ffm::dvbsub_parser::%s[%d] line overflow \n", __FUNCTION__, __LINE__);fflush(stdout); }
     (*srcbuf) += (get_bits_count(&gb) + 7) >> 3;
     return pixels_read;
 }
@@ -605,6 +606,8 @@ static int dvbsub_read_4bit_string(uint8_t *destbuf, int dbuf_len,
                         *destbuf++ = bits;
                 }
                 pixels_read++;
+            } else {
+                fprintf(stdout, "##ffm::%s hay algo mal\n",__FUNCTION__);fflush(stdout);
             }
         } else {
             bits = get_bits1(&gb);
@@ -612,6 +615,7 @@ static int dvbsub_read_4bit_string(uint8_t *destbuf, int dbuf_len,
                 run_length = get_bits(&gb, 3);
 
                 if (run_length == 0) {
+                    fprintf(stdout, "##ffm::%s hay algo mal\n",__FUNCTION__);fflush(stdout);
                     break;
                 }
 
@@ -633,8 +637,11 @@ static int dvbsub_read_4bit_string(uint8_t *destbuf, int dbuf_len,
                     bits = get_bits(&gb, 4);
 
                     if (non_mod == 1 && bits == 1) {
-                        if (pixels_read < dbuf_len - run_length)
+                        if (pixels_read < dbuf_len - run_length) {
                             pixels_read += run_length;
+                        } else {
+                            fprintf(stdout, "##ffm::%s hay algo mal\n",__FUNCTION__);fflush(stdout);
+                        }
                     } else {
                         if (map_table)
                             bits = map_table[bits];
@@ -650,8 +657,11 @@ static int dvbsub_read_4bit_string(uint8_t *destbuf, int dbuf_len,
                         bits = get_bits(&gb, 4);
 
                         if (non_mod == 1 && bits == 1) {
-                            if (pixels_read < dbuf_len - run_length)
+                            if (pixels_read < dbuf_len - run_length) {
                                 pixels_read += run_length;
+                            } else {
+                                fprintf(stdout, "##ffm::%s hay algo mal\n",__FUNCTION__);fflush(stdout);
+                            }
                         } else {
                             if (map_table)
                                 bits = map_table[bits];
@@ -666,7 +676,11 @@ static int dvbsub_read_4bit_string(uint8_t *destbuf, int dbuf_len,
 
                         if (non_mod == 1 && bits == 1) {
                             if (pixels_read < dbuf_len - run_length)
+                            {
                                 pixels_read += run_length;
+                            } else {
+                                fprintf(stdout, "##ffm::%s hay algo mal\n",__FUNCTION__);fflush(stdout);
+                            }
                         } else {
                             if (map_table)
                                 bits = map_table[bits];
@@ -693,13 +707,17 @@ static int dvbsub_read_4bit_string(uint8_t *destbuf, int dbuf_len,
                         if (pixels_read < dbuf_len) {
                             *destbuf++ = bits;
                             pixels_read ++;
+                        } else {
+                            fprintf(stdout, "##ffm::%s hay algo mal\n",__FUNCTION__);fflush(stdout);
+                            // *destbuf++ = bits;
+                            // pixels_read ++;
                         }
                     }
                 }
             }
         }
     }
-
+    if (get_bits(&gb, 8)) { fprintf(stdout, "\n##ffm::dvbsub_parser::%s[%d] line overflow \n", __FUNCTION__, __LINE__);fflush(stdout); }
     (*srcbuf) += (get_bits_count(&gb) + 7) >> 3;
     return pixels_read;
 }
@@ -716,6 +734,7 @@ static int dvbsub_read_8bit_string(uint8_t *destbuf, int dbuf_len,
     destbuf += x_pos;
 
     while (*srcbuf < sbuf_end) {
+        if(*srcbuf < sbuf_end && pixels_read < dbuf_len) { printf(stdout, "\n##ffm::dvbsub_parser::%s[%d] salia antes \n", __FUNCTION__, __LINE__);fflush(stdout); }
         bits = *(*srcbuf)++;
 
         if (bits) {
@@ -727,19 +746,26 @@ static int dvbsub_read_8bit_string(uint8_t *destbuf, int dbuf_len,
                         *destbuf++ = bits;
                 }
                 pixels_read++;
+            } else {
+                fprintf(stdout, "##ffm::%s hay algo mal\n",__FUNCTION__);fflush(stdout);
             }
         } else {
             bits = *(*srcbuf)++;
             run_length = bits & 0x7f;
             if ((bits & 0x80) == 0) {
                 if (run_length == 0) {
+                    fprintf(stdout, "##ffm::%s hay algo mal\n",__FUNCTION__);fflush(stdout);
                     break;
                 }
 
-                if (map_table)
+                if (map_table){
+                    fprintf(stdout, "##ffm::%s hay algo mal\n",__FUNCTION__);fflush(stdout);
                     bits = map_table[0];
+                }
                 else
                     bits = 0;
+
+                fprintf(stdout, "##ffm::%s no hacía el while\n",__FUNCTION__);fflush(stdout);
                 while (run_length-- > 0 && pixels_read < dbuf_len) {
                     *destbuf++ = bits;
                     pixels_read++;
@@ -748,8 +774,11 @@ static int dvbsub_read_8bit_string(uint8_t *destbuf, int dbuf_len,
                 bits = *(*srcbuf)++;
 
                 if (non_mod == 1 && bits == 1) {
-                    if (pixels_read < dbuf_len - run_length);
+                    if (pixels_read < dbuf_len - run_length) {
                         pixels_read += run_length;
+                    } else {
+                        fprintf(stdout, "##ffm::%s hay algo mal\n",__FUNCTION__);fflush(stdout);
+                    }
                 }
                 else {
                     if (map_table)
@@ -762,6 +791,7 @@ static int dvbsub_read_8bit_string(uint8_t *destbuf, int dbuf_len,
             }
         }
     }
+    if (*(*srcbuf)++) fprintf(stdout, "##ffm::%s line overflow\n",__FUNCTION__);fflush(stdout);
 
     return pixels_read;
 }
@@ -785,25 +815,28 @@ static void dvbsub_parse_pixel_data_block(AVCodecContext *avctx, DVBSubObjectDis
                          0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
     uint8_t *map_table;
 
-#if 0
-    av_dlog(avctx, "DVB pixel block size %d, %s field:\n", buf_size,
-            top_bottom ? "bottom" : "top");
+    fprintf(stdout, "##ffm::dvbsubdec DVB pixel block size %d, %s field:\n", buf_size, top_bottom ? "bottom" : "top");fflush(stdout);
 
+    int j = 0;
     for (i = 0; i < buf_size; i++) {
         if (i % 16 == 0)
-            av_dlog(avctx, "0x%8p: ", buf+i);
+        {
+            fprintf(stdout, "##ffm::dvbsubdec[%d] 0x%8p:", j, buf[i]);
+            j++;
+        }
 
-        av_dlog(avctx, "%02x ", buf[i]);
-        if (i % 16 == 15)
-            av_dlog(avctx, "\n");
+        fprintf(stdout, "%02x ", buf[i]);
+        if (i % 16 == 15) {
+            fprintf(stdout, "\n");fflush(stdout);
+        }
+
     }
 
-    if (i % 16)
-        av_dlog(avctx, "\n");
-#endif
-
-    if (region == 0)
+    fprintf(stdout, "\n##ffm::dvbsuddec::%s[%d] -- end buff[%d] %s -- \n", __FUNCTION__, __LINE__, buf_size, top_bottom ? "bottom" : "top");fflush(stdout);
+    if (region == 0){ 
+        fprintf(stdout, "\n##ffm::dvbsuddec::%s[%d] region == 0 \n", __FUNCTION__, __LINE__);fflush(stdout);
         return;
+    }
 
     pbuf = region->pbuf;
     region->dirty = 1;
@@ -814,8 +847,14 @@ static void dvbsub_parse_pixel_data_block(AVCodecContext *avctx, DVBSubObjectDis
     y_pos += top_bottom;
 
     while (buf < buf_end) {
+
+        if ((*buf!=0xf0 && x_pos >= region->width) || y_pos >= region->height) {
+            fprintf(stdout, "##wpl-softsub::softsub_drv::%s[%d] Invalid object location! 1 %d-%d %d-%d %02x\n", __FUNCTION__, __LINE__, x_pos, region->width, y_pos, region->height, *buf);
+            fprintf(stdout, "##wpl-softsub::softsub_drv::%s[%d] hubiese return\n", __FUNCTION__, __LINE__,buf, buf_size);fflush(stdout);
+        }
         if ((*buf!=0xf0 && x_pos > region->width) || y_pos > region->height) {
-            av_log(avctx, AV_LOG_ERROR, "Invalid object location! %d-%d %d-%d %02x\n", x_pos, region->width, y_pos, region->height, *buf);
+            fprintf(stdout, "##wpl-softsub::softsub_drv::%s[%d] Invalid object location! 2 %d-%d %d-%d %02x\n", __FUNCTION__, __LINE__, x_pos, region->width, y_pos, region->height, *buf);
+            fprintf(stdout, "##wpl-softsub::softsub_drv::%s[%d] buff(%p)len=%d \n", __FUNCTION__, __LINE__,buf, buf_size);fflush(stdout);
             return;
         }
 
@@ -827,7 +866,7 @@ static void dvbsub_parse_pixel_data_block(AVCodecContext *avctx, DVBSubObjectDis
                 map_table = map2to4;
             else
                 map_table = NULL;
-
+            fprintf(stdout, "##wpl-softsub::softsub_drv::%s[%d] hubiese return\n", __FUNCTION__, __LINE__,buf, buf_size);fflush(stdout);
             x_pos = dvbsub_read_2bit_string(pbuf + (y_pos * region->width),
                                             region->width, &buf, buf_end - buf,
                                             non_mod, map_table, x_pos);
@@ -842,7 +881,7 @@ static void dvbsub_parse_pixel_data_block(AVCodecContext *avctx, DVBSubObjectDis
                 map_table = map4to8;
             else
                 map_table = NULL;
-
+            fprintf(stdout, "##wpl-softsub::softsub_drv::%s[%d] \n", __FUNCTION__, __LINE__,buf, buf_size);fflush(stdout);
             x_pos = dvbsub_read_4bit_string(pbuf + (y_pos * region->width),
                                             region->width, &buf, buf_end - buf,
                                             non_mod, map_table, x_pos);
@@ -852,37 +891,42 @@ static void dvbsub_parse_pixel_data_block(AVCodecContext *avctx, DVBSubObjectDis
                 av_log(avctx, AV_LOG_ERROR, "8-bit pixel string in %d-bit region!\n", region->depth);
                 return;
             }
-
+            fprintf(stdout, "##wpl-softsub::softsub_drv::%s[%d] \n", __FUNCTION__, __LINE__,buf, buf_size);fflush(stdout);
             x_pos = dvbsub_read_8bit_string(pbuf + (y_pos * region->width),
                                             region->width, &buf, buf_end - buf,
                                             non_mod, NULL, x_pos);
             break;
 
         case 0x20:
+            fprintf(stdout, "##wpl-softsub::softsub_drv::%s[%d] \n", __FUNCTION__, __LINE__,buf, buf_size);fflush(stdout);
             map2to4[0] = (*buf) >> 4;
             map2to4[1] = (*buf++) & 0xf;
             map2to4[2] = (*buf) >> 4;
             map2to4[3] = (*buf++) & 0xf;
             break;
         case 0x21:
+            fprintf(stdout, "##wpl-softsub::softsub_drv::%s[%d] \n", __FUNCTION__, __LINE__,buf, buf_size);fflush(stdout);
             for (i = 0; i < 4; i++)
                 map2to8[i] = *buf++;
             break;
         case 0x22:
+            fprintf(stdout, "##wpl-softsub::softsub_drv::%s[%d] \n", __FUNCTION__, __LINE__,buf, buf_size);fflush(stdout);
             for (i = 0; i < 16; i++)
                 map4to8[i] = *buf++;
             break;
 
         case 0xf0:
+            fprintf(stdout, "##wpl-softsub::softsub_drv::%s[%d] \n", __FUNCTION__, __LINE__,buf, buf_size);fflush(stdout);
             x_pos = display->x_pos;
             y_pos += 2;
             break;
         default:
-//            av_log(avctx, AV_LOG_INFO, "Unknown/unsupported pixel block 0x%x\n", *(buf-1));
+            fprintf(stdout, "##wpl-softsub::softsub_drv::%s[%d] Unknown/unsupported pixel block 0\n", __FUNCTION__, __LINE__,buf, buf_size);fflush(stdout);
+            av_log(avctx, AV_LOG_INFO, "Unknown/unsupported pixel block 0x%x\n", *(buf-1));
             break;
         }
     }
-
+    fprintf(stdout, "##wpl-softsub::softsub_drv::%s[%d] buff(%p)len=%d \n", __FUNCTION__, __LINE__,buf, buf_size);fflush(stdout);
 }
 
 static void dvbsub_parse_object_segment(AVCodecContext *avctx,
@@ -917,8 +961,11 @@ static void dvbsub_parse_object_segment(AVCodecContext *avctx,
 
         if (buf + top_field_len + bottom_field_len > buf_end) {
             av_log(avctx, AV_LOG_ERROR, "Field data size too large\n");
+            int mlen = top_field_len + bottom_field_len;
+            fprintf(stdout, "##wpl-softsub::softsub_drv::%s[%d] bufferSize(%d) dataSize(%d) \n", __FUNCTION__, __LINE__,mlen, buf_size);fflush(stdout);
             return;
         }
+        fprintf(stdout, "##ffm::dvbsubdec::%s[%d] \n", __FUNCTION__, __LINE__);fflush(stdout);
 
         for (display = object->display_list; display; display = display->object_list_next) {
             const uint8_t *block = buf;
@@ -935,7 +982,7 @@ static void dvbsub_parse_object_segment(AVCodecContext *avctx,
             dvbsub_parse_pixel_data_block(avctx, display, block, bfl, 1,
                                             non_modifying_color);
         }
-
+        fprintf(stdout, "##wpl-softsub::softsub_drv::%s[%d] buff(%p)len=%d \n", __FUNCTION__, __LINE__,buf, buf_size);fflush(stdout);
 /*  } else if (coding_method == 1) {*/
 
     } else {
@@ -957,16 +1004,17 @@ static void dvbsub_parse_clut_segment(AVCodecContext *avctx,
     int y, cr, cb, alpha;
     int r, g, b, r_add, g_add, b_add;
 
-    av_dlog(avctx, "DVB clut packet:\n");
+    //otro bucle
+    // av_dlog(avctx, "DVB clut packet:\n");
 
-    for (i=0; i < buf_size; i++) {
-        av_dlog(avctx, "%02x ", buf[i]);
-        if (i % 16 == 15)
-            av_dlog(avctx, "\n");
-    }
+    // for (i=0; i < buf_size; i++) {
+    //     av_dlog(avctx, "%02x ", buf[i]);
+    //     if (i % 16 == 15)
+    //         av_dlog(avctx, "\n");
+    // }
 
-    if (i % 16)
-        av_dlog(avctx, "\n");
+    // if (i % 16)
+    //     av_dlog(avctx, "\n");
 
     clut_id = *buf++;
     version = ((*buf)>>4)&15;
@@ -1470,16 +1518,21 @@ static int dvbsub_decode(AVCodecContext *avctx,
     int segment_length;
     int i;
 
-    av_dlog(avctx, "DVB sub packet:\n");
+    fprintf(stdout, "##ffm::%s DVB sub packet:\n", __FUNCTION__);fflush(stdout);
 
+    int j = 0;
     for (i=0; i < buf_size; i++) {
-        av_dlog(avctx, "%02x ", buf[i]);
-        if (i % 16 == 15)
-            av_dlog(avctx, "\n");
+        if (i % 16 == 0)
+        {
+            fprintf(stdout, "##ffm::dvbsub_parser[%d] 0x%8p:", j, buf[i]);
+            j++;
+        }
+        fprintf(stdout, "%02x ", buf[i]);
+        if (i % 16 == 15) {
+            fprintf(stdout, "\n");fflush(stdout);
+        }
     }
-
-    if (i % 16)
-        av_dlog(avctx, "\n");
+    fprintf(stdout, "\n##ffm::%s DVB sub packet end\n", __FUNCTION__);fflush(stdout);
 
     if (buf_size < 6 || *buf != 0x0f) {
         av_log(avctx, AV_LOG_INFO, "incomplete or broken packet\n");
@@ -1536,6 +1589,7 @@ static int dvbsub_decode(AVCodecContext *avctx,
         }
 
         p += segment_length;
+        fprintf(stdout, "##wpl-softsub::softsub_drv::%s[%d] newp(%p) increment=%d \n", __FUNCTION__, __LINE__,p, segment_length);fflush(stdout);
     }
     // Some streams do not send a display segment but if we have all the other
     // segments then we need no further data.

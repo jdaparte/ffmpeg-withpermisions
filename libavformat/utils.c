@@ -3685,7 +3685,7 @@ static void dump_stream_format(AVFormatContext *ic, int i, int index, int is_out
     if (lang)
         av_log(NULL, AV_LOG_INFO, "(%s)", lang->value);
     av_log(NULL, AV_LOG_DEBUG, ", %d, %d/%d", st->codec_info_nb_frames, st->time_base.num/g, st->time_base.den/g);
-    av_log(NULL, AV_LOG_INFO, ": %s", buf);
+    av_log(NULL, AV_LOG_INFO, ": %s", buf); // aca es el codec_string dvb_subtitle
     if (st->sample_aspect_ratio.num && // default
         av_cmp_q(st->sample_aspect_ratio, st->codec->sample_aspect_ratio)) {
         AVRational display_aspect_ratio;

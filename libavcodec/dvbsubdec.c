@@ -488,25 +488,22 @@ static int dvbsub_read_2bit_string(uint8_t *destbuf, int dbuf_len,
         bits = get_bits(&gb, 2);
 
         if (bits) {
-            if (pixels_read < dbuf_len) {
-                if (non_mod != 1 || bits != 1) {
-                    if (map_table)
-                        *destbuf++ = map_table[bits];
-                    else
-                        *destbuf++ = bits;
-                }
-                pixels_read++;
+            if (non_mod != 1 || bits != 1) {
+                if (map_table)
+                    *destbuf++ = map_table[bits];
+                else
+                    *destbuf++ = bits;
             }
+            pixels_read++;
         } else {
             bits = get_bits1(&gb);
             if (bits == 1) {
                 run_length = get_bits(&gb, 3) + 3;
                 bits = get_bits(&gb, 2);
 
-                if (non_mod == 1 && bits == 1) {
-                    if (pixels_read < dbuf_len - run_length)
-                        pixels_read += run_length;
-                } else {
+                if (non_mod == 1 && bits == 1)
+                    pixels_read += run_length;
+                else {
                     if (map_table)
                         bits = map_table[bits];
                     while (run_length-- > 0 && pixels_read < dbuf_len) {
@@ -522,10 +519,9 @@ static int dvbsub_read_2bit_string(uint8_t *destbuf, int dbuf_len,
                         run_length = get_bits(&gb, 4) + 12;
                         bits = get_bits(&gb, 2);
 
-                        if (non_mod == 1 && bits == 1) {
-                            if (pixels_read < dbuf_len - run_length)
-                                pixels_read += run_length;
-                        } else {
+                        if (non_mod == 1 && bits == 1)
+                            pixels_read += run_length;
+                        else {
                             if (map_table)
                                 bits = map_table[bits];
                             while (run_length-- > 0 && pixels_read < dbuf_len) {
@@ -537,10 +533,9 @@ static int dvbsub_read_2bit_string(uint8_t *destbuf, int dbuf_len,
                         run_length = get_bits(&gb, 8) + 29;
                         bits = get_bits(&gb, 2);
 
-                        if (non_mod == 1 && bits == 1) {
-                            if (pixels_read < dbuf_len - run_length)
-                                pixels_read += run_length;
-                        } else {
+                        if (non_mod == 1 && bits == 1)
+                            pixels_read += run_length;
+                        else {
                             if (map_table)
                                 bits = map_table[bits];
                             while (run_length-- > 0 && pixels_read < dbuf_len) {
@@ -559,24 +554,26 @@ static int dvbsub_read_2bit_string(uint8_t *destbuf, int dbuf_len,
                             pixels_read++;
                         }
                     } else {
-                        break;
+                        (*srcbuf) += (get_bits_count(&gb) + 7) >> 3;
+                        return pixels_read;
                     }
                 } else {
                     if (map_table)
                         bits = map_table[0];
                     else
                         bits = 0;
-                    if (pixels_read < dbuf_len) {
-                        *destbuf++ = bits;
-                        pixels_read++;
-                    }
+                    *destbuf++ = bits;
+                    pixels_read++;
                 }
             }
         }
     }
 
-    if (get_bits(&gb, 6)) { fprintf(stdout, "\n##ffm::dvbsub_parser::%s[%d] line overflow \n", __FUNCTION__, __LINE__);fflush(stdout); }
+    if (get_bits(&gb, 6)){
+        fprintf(stdout, "\n##ffm::dvbsub_parser::%s[%d] overflow \n", __FUNCTION__, __LINE__);fflush(stdout);
+    }
     (*srcbuf) += (get_bits_count(&gb) + 7) >> 3;
+
     return pixels_read;
 }
 
@@ -598,25 +595,21 @@ static int dvbsub_read_4bit_string(uint8_t *destbuf, int dbuf_len,
         bits = get_bits(&gb, 4);
 
         if (bits) {
-            if (pixels_read < dbuf_len) {
-                if (non_mod != 1 || bits != 1) {
-                    if (map_table)
-                        *destbuf++ = map_table[bits];
-                    else
-                        *destbuf++ = bits;
-                }
-                pixels_read++;
-            } else {
-                fprintf(stdout, "##ffm::%s hay algo mal\n",__FUNCTION__);fflush(stdout);
+            if (non_mod != 1 || bits != 1) {
+                if (map_table)
+                    *destbuf++ = map_table[bits];
+                else
+                    *destbuf++ = bits;
             }
+            pixels_read++;
         } else {
             bits = get_bits1(&gb);
             if (bits == 0) {
                 run_length = get_bits(&gb, 3);
 
                 if (run_length == 0) {
-                    fprintf(stdout, "##ffm::%s hay algo mal\n",__FUNCTION__);fflush(stdout);
-                    break;
+                    (*srcbuf) += (get_bits_count(&gb) + 7) >> 3;
+                    return pixels_read;
                 }
 
                 run_length += 2;
@@ -636,13 +629,9 @@ static int dvbsub_read_4bit_string(uint8_t *destbuf, int dbuf_len,
                     run_length = get_bits(&gb, 2) + 4;
                     bits = get_bits(&gb, 4);
 
-                    if (non_mod == 1 && bits == 1) {
-                        if (pixels_read < dbuf_len - run_length) {
-                            pixels_read += run_length;
-                        } else {
-                            fprintf(stdout, "##ffm::%s hay algo mal\n",__FUNCTION__);fflush(stdout);
-                        }
-                    } else {
+                    if (non_mod == 1 && bits == 1)
+                        pixels_read += run_length;
+                    else {
                         if (map_table)
                             bits = map_table[bits];
                         while (run_length-- > 0 && pixels_read < dbuf_len) {
@@ -656,13 +645,9 @@ static int dvbsub_read_4bit_string(uint8_t *destbuf, int dbuf_len,
                         run_length = get_bits(&gb, 4) + 9;
                         bits = get_bits(&gb, 4);
 
-                        if (non_mod == 1 && bits == 1) {
-                            if (pixels_read < dbuf_len - run_length) {
-                                pixels_read += run_length;
-                            } else {
-                                fprintf(stdout, "##ffm::%s hay algo mal\n",__FUNCTION__);fflush(stdout);
-                            }
-                        } else {
+                        if (non_mod == 1 && bits == 1)
+                            pixels_read += run_length;
+                        else {
                             if (map_table)
                                 bits = map_table[bits];
                             while (run_length-- > 0 && pixels_read < dbuf_len) {
@@ -674,14 +659,9 @@ static int dvbsub_read_4bit_string(uint8_t *destbuf, int dbuf_len,
                         run_length = get_bits(&gb, 8) + 25;
                         bits = get_bits(&gb, 4);
 
-                        if (non_mod == 1 && bits == 1) {
-                            if (pixels_read < dbuf_len - run_length)
-                            {
-                                pixels_read += run_length;
-                            } else {
-                                fprintf(stdout, "##ffm::%s hay algo mal\n",__FUNCTION__);fflush(stdout);
-                            }
-                        } else {
+                        if (non_mod == 1 && bits == 1)
+                            pixels_read += run_length;
+                        else {
                             if (map_table)
                                 bits = map_table[bits];
                             while (run_length-- > 0 && pixels_read < dbuf_len) {
@@ -704,21 +684,20 @@ static int dvbsub_read_4bit_string(uint8_t *destbuf, int dbuf_len,
                             bits = map_table[0];
                         else
                             bits = 0;
-                        if (pixels_read < dbuf_len) {
-                            *destbuf++ = bits;
-                            pixels_read ++;
-                        } else {
-                            fprintf(stdout, "##ffm::%s hay algo mal\n",__FUNCTION__);fflush(stdout);
-                            // *destbuf++ = bits;
-                            // pixels_read ++;
-                        }
+                        *destbuf++ = bits;
+                        pixels_read ++;
                     }
                 }
             }
         }
     }
-    if (get_bits(&gb, 8)) { fprintf(stdout, "\n##ffm::dvbsub_parser::%s[%d] line overflow \n", __FUNCTION__, __LINE__);fflush(stdout); }
+
+    if (get_bits(&gb, 8)) {
+        fprintf(stdout, "\n##ffm::dvbsub_parser::%s[%d] overflow \n", __FUNCTION__, __LINE__);fflush(stdout);
+    }
+
     (*srcbuf) += (get_bits_count(&gb) + 7) >> 3;
+
     return pixels_read;
 }
 
@@ -733,65 +712,45 @@ static int dvbsub_read_8bit_string(uint8_t *destbuf, int dbuf_len,
 
     destbuf += x_pos;
 
-    while (*srcbuf < sbuf_end) {
-        if(*srcbuf < sbuf_end && pixels_read < dbuf_len) { printf(stdout, "\n##ffm::dvbsub_parser::%s[%d] salia antes \n", __FUNCTION__, __LINE__);fflush(stdout); }
+    while (*srcbuf < sbuf_end && pixels_read < dbuf_len) {
         bits = *(*srcbuf)++;
 
         if (bits) {
-            if (pixels_read < dbuf_len) {
-                if (non_mod != 1 || bits != 1) {
-                    if (map_table)
-                        *destbuf++ = map_table[bits];
-                    else
-                        *destbuf++ = bits;
-                }
-                pixels_read++;
-            } else {
-                fprintf(stdout, "##ffm::%s hay algo mal\n",__FUNCTION__);fflush(stdout);
+            if (non_mod != 1 || bits != 1) {
+                if (map_table)
+                    *destbuf++ = map_table[bits];
+                else
+                    *destbuf++ = bits;
             }
+            pixels_read++;
         } else {
             bits = *(*srcbuf)++;
             run_length = bits & 0x7f;
             if ((bits & 0x80) == 0) {
                 if (run_length == 0) {
-                    fprintf(stdout, "##ffm::%s hay algo mal\n",__FUNCTION__);fflush(stdout);
-                    break;
+                    return pixels_read;
                 }
 
-                if (map_table){
-                    fprintf(stdout, "##ffm::%s hay algo mal\n",__FUNCTION__);fflush(stdout);
-                    bits = map_table[0];
-                }
-                else
-                    bits = 0;
-
-                fprintf(stdout, "##ffm::%s no hacía el while\n",__FUNCTION__);fflush(stdout);
+                bits = 0;
+            } else {
+                bits = *(*srcbuf)++;
+            }
+            if (non_mod == 1 && bits == 1)
+                pixels_read += run_length;
+            else {
+                if (map_table)
+                    bits = map_table[bits];
                 while (run_length-- > 0 && pixels_read < dbuf_len) {
                     *destbuf++ = bits;
                     pixels_read++;
                 }
-            } else {
-                bits = *(*srcbuf)++;
-
-                if (non_mod == 1 && bits == 1) {
-                    if (pixels_read < dbuf_len - run_length) {
-                        pixels_read += run_length;
-                    } else {
-                        fprintf(stdout, "##ffm::%s hay algo mal\n",__FUNCTION__);fflush(stdout);
-                    }
-                }
-                else {
-                    if (map_table)
-                        bits = map_table[bits];
-                    while (run_length-- > 0 && pixels_read < dbuf_len) {
-                        *destbuf++ = bits;
-                        pixels_read++;
-                    }
-                }
             }
         }
     }
-    if (*(*srcbuf)++) fprintf(stdout, "##ffm::%s line overflow\n",__FUNCTION__);fflush(stdout);
+
+    if (*(*srcbuf)++) {
+        fprintf(stdout, "\n##ffm::dvbsub_parser::%s[%d] salia antes \n", __FUNCTION__, __LINE__);fflush(stdout);
+    }
 
     return pixels_read;
 }
@@ -851,10 +810,6 @@ static void dvbsub_parse_pixel_data_block(AVCodecContext *avctx, DVBSubObjectDis
         if ((*buf!=0xf0 && x_pos >= region->width) || y_pos >= region->height) {
             fprintf(stdout, "##wpl-softsub::softsub_drv::%s[%d] Invalid object location! 1 %d-%d %d-%d %02x\n", __FUNCTION__, __LINE__, x_pos, region->width, y_pos, region->height, *buf);
             fprintf(stdout, "##wpl-softsub::softsub_drv::%s[%d] hubiese return\n", __FUNCTION__, __LINE__,buf, buf_size);fflush(stdout);
-        }
-        if ((*buf!=0xf0 && x_pos > region->width) || y_pos > region->height) {
-            fprintf(stdout, "##wpl-softsub::softsub_drv::%s[%d] Invalid object location! 2 %d-%d %d-%d %02x\n", __FUNCTION__, __LINE__, x_pos, region->width, y_pos, region->height, *buf);
-            fprintf(stdout, "##wpl-softsub::softsub_drv::%s[%d] buff(%p)len=%d \n", __FUNCTION__, __LINE__,buf, buf_size);fflush(stdout);
             return;
         }
 
@@ -1524,7 +1479,7 @@ static int dvbsub_decode(AVCodecContext *avctx,
     for (i=0; i < buf_size; i++) {
         if (i % 16 == 0)
         {
-            fprintf(stdout, "##ffm::dvbsub_parser[%d] 0x%8p:", j, buf[i]);
+            fprintf(stdout, "##ffm::dvbsub_parser[%d] 0x%8p:", j, &buf[i]);
             j++;
         }
         fprintf(stdout, "%02x ", buf[i]);
